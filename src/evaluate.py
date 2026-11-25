@@ -21,10 +21,17 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
+import requests
+
+from . import config
 from .config import ROOT
-from .rag import answer, resolve_domains
+from .rag import SYSTEM_BASE, SYSTEM_RAG, answer, resolve_domains
 
 INPUT_DEFAULT = ROOT / "results" / "preguntas_evaluacion_v2.csv"
 SPLITS = ("dev", "test", "all")
@@ -60,6 +67,74 @@ def format_sources(sources: list[dict]) -> str:
             f"{source.get('chunk_id')} | {source.get('url')}"
         )
     return " || ".join(parts)
+
+
+def sha256_file(path: Path) -> str | None:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16] if path.exists() else None
+
+
+def git_info() -> dict:
+    """Commit actual y si hay cambios sin confirmar en archivos versionados."""
+    def run(*args):
+        try:
+            return subprocess.run(
+                ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True
+            ).stdout.strip()
+        except (OSError, subprocess.CalledProcessError):
+            return None
+
+    status = run("status", "--porcelain", "--untracked-files=no")
+    return {
+        "commit": run("rev-parse", "--short", "HEAD"),
+        "branch": run("rev-parse", "--abbrev-ref", "HEAD"),
+        "uncommitted_changes": bool(status) if status is not None else None,
+    }
+
+
+def ollama_digest() -> str | None:
+    """Digest del modelo en Ollama: identifica los pesos exactos usados."""
+    try:
+        response = requests.get(f"{config.OLLAMA_BASE_URL}/api/tags", timeout=5)
+        for model in response.json().get("models", []):
+            if model.get("name") == config.OLLAMA_MODEL:
+                return model.get("digest")
+    except (requests.RequestException, ValueError):
+        pass
+    return None
+
+
+def run_metadata(input_path: Path, split: str, n_questions: int) -> dict:
+    """Datos necesarios para saber con qué sistema se generó un CSV."""
+    return {
+        "started_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "split": split,
+        "questions": n_questions,
+        "question_bank": input_path.name,
+        "question_bank_sha256": sha256_file(input_path),
+        "git": git_info(),
+        "llm": {
+            "model": config.OLLAMA_MODEL,
+            "digest": ollama_digest(),
+            "temperature": 0,
+        },
+        "embedding_model": config.EMBEDDING_MODEL,
+        "collection": config.COLLECTION,
+        "corpus_manifest_sha256": sha256_file(config.DOCS_DIR / "manifest.json"),
+        "prompts_sha256": hashlib.sha256(
+            (SYSTEM_BASE + SYSTEM_RAG).encode("utf-8")
+        ).hexdigest()[:16],
+        "retrieval": {
+            "retrieval_k": config.RETRIEVAL_K,
+            "integrated_k_per_domain": config.INTEGRATED_K_PER_DOMAIN,
+            "query_expansion": config.QUERY_EXPANSION_ENABLED,
+            "search_k": config.QUERY_EXPANSION_SEARCH_K,
+            "rrf_constant": config.RRF_CONSTANT,
+            "rrf_original_weight": config.RRF_ORIGINAL_QUERY_WEIGHT,
+            "rrf_expanded_weight": config.RRF_EXPANDED_QUERY_WEIGHT,
+            "hybrid_search": config.HYBRID_SEARCH_ENABLED,
+            "bm25_weight": config.BM25_WEIGHT,
+        },
+    }
 
 
 def load_questions(input_path: Path, split: str) -> list[dict]:
@@ -121,6 +196,16 @@ def run():
     print(f"Banco: {input_path.name} | conjunto: {args.split} | preguntas: {len(questions)}")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    metadata = run_metadata(input_path, args.split, len(questions))
+    if metadata["git"]["uncommitted_changes"]:
+        print(
+            "AVISO: hay cambios sin confirmar en archivos versionados; el commit "
+            "registrado no describe exactamente el sistema evaluado."
+        )
+    metadata_path = output_path.with_suffix(".meta.json")
+    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Metadatos de la ejecución: {metadata_path}")
 
     with output_path.open("w", encoding="utf-8-sig", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=OUTPUT_FIELDS)

@@ -1,0 +1,119 @@
+[
+  {
+    "filename": "01_docker_overview.md",
+    "title": "Docker overview",
+    "domain": "docker",
+    "source_url": "https://docs.docker.com/get-started/docker-overview/",
+    "retrieved_at_utc": "2026-11-15T17:48:03.234588+00:00",
+    "characters": 9776,
+    "status": "ok"
+  },
+  {
+    "filename": "02_dockerfile.md",
+    "title": "Writing a Dockerfile",
+    "domain": "docker",
+    "source_url": "https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/",
+    "retrieved_at_utc": "2026-11-15T17:48:04.076502+00:00",
+    "characters": 5983,
+    "status": "ok"
+  },
+  {
+    "filename": "03_networking.md",
+    "title": "Networking overview",
+    "domain": "docker",
+    "source_url": "https://docs.docker.com/engine/network/",
+    "retrieved_at_utc": "2026-11-15T17:48:04.713920+00:00",
+    "characters": 13972,
+    "status": "ok"
+  },
+  {
+    "filename": "04_volumes.md",
+    "title": "Volumes",
+    "domain": "docker",
+    "source_url": "https://docs.docker.com/engine/storage/volumes/",
+    "retrieved_at_utc": "2026-11-15T17:48:06.064488+00:00",
+    "characters": 27606,
+    "status": "ok"
+  },
+  {
+    "filename": "05_compose_concepts.md",
+    "title": "Compose application model",
+    "domain": "docker",
+    "source_url": "https://docs.docker.com/compose/intro/compose-application-model/",
+    "retrieved_at_utc": "2026-11-15T17:48:07.977210+00:00",
+    "characters": 8496,
+    "status": "ok"
+  },
+  {
+    "filename": "06_compose_quickstart.md",
+    "title": "Compose Quickstart",
+    "domain": "docker",
+    "source_url": "https://docs.docker.com/compose/gettingstarted/",
+    "retrieved_at_utc": "2026-11-15T17:48:09.544076+00:00",
+    "characters": 17595,
+    "status": "ok"
+  },
+  {
+    "filename": "07_fastapi_first_steps.md",
+    "title": "FastAPI First Steps",
+    "domain": "fastapi",
+    "source_url": "https://fastapi.tiangolo.com/tutorial/first-steps/",
+    "retrieved_at_utc": "2026-11-15T17:48:10.769347+00:00",
+    "characters": 14782,
+    "status": "ok"
+  },
+  {
+    "filename": "08_fastapi_path_params.md",
+    "title": "FastAPI Path Parameters",
+    "domain": "fastapi",
+    "source_url": "https://fastapi.tiangolo.com/tutorial/path-params/",
+    "retrieved_at_utc": "2026-11-15T17:48:12.420680+00:00",
+    "characters": 11927,
+    "status": "ok"
+  },
+  {
+    "filename": "09_fastapi_query_params.md",
+    "title": "FastAPI Query Parameters",
+    "domain": "fastapi",
+    "source_url": "https://fastapi.tiangolo.com/tutorial/query-params/",
+    "retrieved_at_utc": "2026-11-15T17:48:14.289415+00:00",
+    "characters": 6584,
+    "status": "ok"
+  },
+  {
+    "filename": "10_fastapi_request_body.md",
+    "title": "FastAPI Request Body",
+    "domain": "fastapi",
+    "source_url": "https://fastapi.tiangolo.com/tutorial/body/",
+    "retrieved_at_utc": "2026-11-15T17:48:16.061583+00:00",
+    "characters": 8503,
+    "status": "ok"
+  },
+  {
+    "filename": "11_fastapi_dependencies.md",
+    "title": "FastAPI Dependencies",
+    "domain": "fastapi",
+    "source_url": "https://fastapi.tiangolo.com/tutorial/dependencies/",
+    "retrieved_at_utc": "2026-11-15T17:48:17.842799+00:00",
+    "characters": 13187,
+    "status": "ok"
+  },
+  {
+    "filename": "12_fastapi_docker.md",
+    "title": "FastAPI in Containers - Docker",
+    "domain": "fastapi",
+    "source_url": "https://fastapi.tiangolo.com/deployment/docker/",
+    "retrieved_at_utc": "2026-11-15T17:48:19.499702+00:00",
+    "characters": 28836,
+    "status": "ok"
+  },
+  {
+    "filename": "13_docker_port_publishing.md",
+    "title": "Port publishing and mapping",
+    "domain": "docker",
+    "source_url": "https://docs.docker.com/engine/network/port-publishing/",
+    "retrieved_at_utc": "2026-11-15T20:06:15.684523+00:00",
+    "characters": 2779,
+    "status": "ok"
+  }
+]

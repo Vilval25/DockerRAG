@@ -1,0 +1,673 @@
+﻿id,domain,category,question,expected_answer,expected_sources,answer_base,answer_rag,retrieved_sources,retrieved_domains,retrieval_relevant,accuracy_base,accuracy_rag,grounded_base,grounded_rag,hallucination_base,hallucination_rag,notes,execution_error
+F01,fastapi,directa,¿Cómo declara FastAPI un parámetro de ruta llamado item_id como entero y qué ocurre si la URL contiene un valor no numérico?,"Se declara un marcador {item_id} en la ruta y un parámetro item_id: int en la función. FastAPI convierte el valor recibido a entero y valida el tipo; si no puede convertirlo, devuelve un error de validación.",08_fastapi_path_params.md,"En FastAPI, puedes declarar un parámetro de ruta llamado `item_id` como entero utilizando la anotación `Depends` junto con `Depends(Query)`. Aquí tienes un ejemplo de cómo hacerlo:
+
+```python
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Query(..., alias=""itemId"", ge=1, le=100)):
+    return {""item_id"": item_id}
+```
+
+En este ejemplo, `item_id` es un parámetro de ruta que se espera que sea un número entero. La anotación `Query(..., alias=""itemId"", ge=1, le=100)` especifica que el parámetro debe ser un número entero entre 1 y 100 (inclusive). El alias `""itemId""` es opcional y se usa para proporcionar un alias en la URL.
+
+Si la URL contiene un valor no numérico, FastAPI lanzará una excepción `HTTPException` con un código de estado 422 (Unprocessable Entity), que indica que la solicitud no pudo ser procesada debido a un contenido no procesable. Esto generalmente ocurre cuando FastAPI intenta convertir una cadena en un número entero y no puede hacerlo.
+
+Para manejar este caso, puedes usar la función `Depends` junto con `HTTPException` para personalizar la respuesta:
+
+```python
+from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Depends(Query(..., alias=""itemId"", ge=1, le=100))):
+    if not isinstance(item_id, int):
+        raise HTTPException(status_code=422, detail=""El parámetro item_id debe ser un número entero."")
+    return {""item_id"": item_id}
+```
+
+En este caso, si `item_id` no es un número entero, se lanza una excepción `HTTPException` con un mensaje personalizado. FastAPI entonces responderá con un código de estado 422 y el mensaje de error proporcionado.","FastAPI declara `item_id` como entero mediante la anotación `int` en la función asociada a la ruta:
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int):
+    return {""item_id"": item_id}
+```
+
+[2]
+
+Si la URL contiene un valor no numérico como `foo`, la validación no pasa. La documentación muestra el tipo de error `int_parsing`, la ubicación `path` / `item_id` y el mensaje `Input should be a valid integer, unable to parse string as an integer` [7]. También indica que ocurre con un valor decimal como `4.2` [7].",[1] fastapi | FastAPI Query Parameters | 09_fastapi_query_params.md | chunk_00217 | https://fastapi.tiangolo.com/tutorial/query-params/ || [2] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00187 | https://fastapi.tiangolo.com/tutorial/path-params/ || [3] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00185 | https://fastapi.tiangolo.com/tutorial/path-params/ || [4] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00241 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [5] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00238 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [6] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00243 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [7] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00189 | https://fastapi.tiangolo.com/tutorial/path-params/ || [8] fastapi | FastAPI Query Parameters | 09_fastapi_query_params.md | chunk_00208 | https://fastapi.tiangolo.com/tutorial/query-params/,fastapi,,,,,,,,,
+D01,docker,directa,¿Cuál es la diferencia entre una imagen Docker y un contenedor?,Una imagen es una plantilla de solo lectura que contiene instrucciones y elementos para crear un contenedor. Un contenedor es una instancia ejecutable de esa imagen.,01_docker_overview.md,"Una imagen Docker y un contenedor son conceptos relacionados pero diferentes en Docker.
+
+Una imagen Docker es como un archivo de imagen de disco duro que contiene todo lo necesario para crear un contenedor. Incluye el sistema operativo, los paquetes de software, los archivos de configuración y cualquier otro recurso que el contenedor necesita para funcionar. Las imágenes Docker son fijas y no se ejecutan directamente. Se crean con comandos como `docker build` y son almacenadas en un registro de imágenes Docker.
+
+Por otro lado, un contenedor es una ejecución de una imagen Docker. Es como una caja de seguridad que contiene la imagen y ejecuta el sistema operativo y los servicios que la imagen contiene. Los contenedores son livianos y están diseñados para ser rápidos y seguros. Se crean con comandos como `docker run`.
+
+En resumen, una imagen Docker es el archivo de código fuente, mientras que un contenedor es la ejecución de esa imagen. Un contenedor puede ejecutarse en múltiples imágenes, mientras que una imagen solo puede ser ejecutada en un contenedor.","Una imagen Docker es una plantilla de código fuente que contiene las instrucciones necesarias para crear un contenedor. Esencialmente, una imagen Docker es un archivo que contiene todo lo necesario para ejecutar un contenedor, incluyendo el sistema operativo, los paquetes de software, los archivos de configuración y cualquier otro recurso que el contenedor necesita para funcionar.
+
+Por otro lado, un contenedor es una instancia ejecutable de una imagen Docker. Es como una caja de seguridad que contiene todo lo que necesita una aplicación para funcionar, incluyendo el sistema operativo, los paquetes de software y los archivos de configuración. Los contenedores son ejecutados sobre una imagen Docker específica y proporcionan una capa de seguridad y aislamiento para ejecutar aplicaciones.
+
+No encuentro información suficiente en la documentación recuperada.",[1] docker | Docker overview | 01_docker_overview.md | chunk_00012 | https://docs.docker.com/get-started/docker-overview/ || [2] docker | Docker overview | 01_docker_overview.md | chunk_00002 | https://docs.docker.com/get-started/docker-overview/ || [3] docker | Docker overview | 01_docker_overview.md | chunk_00016 | https://docs.docker.com/get-started/docker-overview/ || [4] docker | Docker overview | 01_docker_overview.md | chunk_00006 | https://docs.docker.com/get-started/docker-overview/ || [5] docker | Docker overview | 01_docker_overview.md | chunk_00001 | https://docs.docker.com/get-started/docker-overview/ || [6] docker | Docker overview | 01_docker_overview.md | chunk_00000 | https://docs.docker.com/get-started/docker-overview/ || [7] docker | Docker overview | 01_docker_overview.md | chunk_00014 | https://docs.docker.com/get-started/docker-overview/ || [8] docker | Docker overview | 01_docker_overview.md | chunk_00018 | https://docs.docker.com/get-started/docker-overview/,docker,,,,,,,,,
+I01,integrated,integrada,¿Cómo se crea una operación GET básica en FastAPI y cuáles son los pasos principales para empaquetar y ejecutar esa aplicación en Docker?,"Se crea una instancia de FastAPI y se define la operación con un decorador como @app.get(""/"") asociado a una función. Para contenerizarla, se prepara un Dockerfile con una imagen base, directorio de trabajo, copia e instalación de dependencias, copia del código y comando de inicio; después se construye la imagen y se ejecuta un contenedor publicando el puerto necesario.",07_fastapi_first_steps.md;12_fastapi_docker.md;02_dockerfile.md,"Crear una operación GET básica en FastAPI y empaquetar la aplicación en Docker son pasos importantes para la implementación de una aplicación web. Vamos a dividir este proceso en dos partes: la creación de la aplicación FastAPI y la empaquetación en Docker.
+
+### Creación de una Operación GET Básica en FastAPI
+
+Primero, necesitamos instalar FastAPI y Uvicorn, que es un servidor web ASGI (Asynchronous Server Gateway Interface) que FastAPI usa para ejecutar aplicaciones. Puedes hacerlo con pip:
+
+```bash
+pip install fastapi uvicorn
+```
+
+Ahora, vamos a crear una aplicación básica que responde a una ruta GET. Aquí tienes un ejemplo de cómo hacerlo:
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def read_main():
+    return {""message"": ""¡Hola, FastAPI!""}
+```
+
+Este código crea una aplicación FastAPI y una ruta GET (`/`) que devuelve un diccionario que contiene un mensaje.
+
+### Empaquetar la Aplicación en Docker
+
+Ahora que tenemos nuestra aplicación funcionando, vamos a empaquetarla en un contenedor Docker. Aquí hay algunos pasos para hacerlo:
+
+1. **Crear un archivo `Dockerfile`:** Este archivo especifica cómo construir el contenedor. Aquí tienes un ejemplo simple:
+
+```dockerfile
+# Dockerfile
+FROM python:3.9-slim
+
+# Instalar dependencias
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+
+# Copiar código fuente
+COPY . .
+
+# Configurar el servidor
+CMD [""uvicorn"", ""main:app"", ""--host"", ""0.0.0.0"", ""--port"", ""8000""]
+```
+
+Este Dockerfile hace lo siguiente:
+- Usa una imagen de Python 3.9.
+- Instala las dependencias especificadas en `requirements.txt`.
+- Copia el código fuente de la aplicación.
+- Configura el servidor FastAPI para que escuche en el puerto 8000.
+
+2. **Crear un archivo `requirements.txt`:** Este archivo especifica las dependencias de tu aplicación. Por ejemplo:
+
+```requirements.txt
+fastapi
+uvicorn
+```
+
+3. **Construir el contenedor:** Ahora puedes construir el contenedor Docker con el siguiente comando:
+
+```bash
+docker build -t mi-aplicacion-fastapi .
+```
+
+Aquí, `-t` es para darle un nombre al contenedor (`mi-aplicacion-fastapi`).
+
+4. **Ejecutar el contenedor:** Una vez que el contenedor esté construido, puedes ejecutarlo:
+
+```bash
+docker run -p 8000:8000 mi-aplicacion-fastapi
+```
+
+Esto te permitirá acceder a tu aplicación en `http://localhost:8000`.
+
+### Comprobando la Aplicación
+
+Para comprobar que todo está funcionando correctamente, puedes usar una herramienta como Postman o cURL para hacer una solicitud GET a la ruta `/` de tu aplicación.
+
+```bash
+curl http://localhost:8000
+```
+
+Deberías recibir una respuesta que dice `""¡Hola, FastAPI!""`.
+
+### Conclusión
+
+Con estos pasos, has creado una aplicación básica con FastAPI y la has empaquetado en un contenedor Docker. Ahora puedes ejecutar tu aplicación en un entorno seguro y controlado. Si necesitas más funciones o características, puedes seguir agregando rutas y configuraciones en tu aplicación y actualizando el Dockerfile correspondientemente.","Para crear una operación GET básica en FastAPI, se debe seguir el siguiente paso:
+
+1. Importar la clase FastAPI:
+
+```python
+from fastapi import FastAPI
+```
+
+2. Crear una instancia de FastAPI:
+
+```python
+app = FastAPI()
+```
+
+3. Definir una operación GET utilizando la decoración `@app.get(""/"")`:
+
+```python
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+Estos son los pasos principales para crear una operación GET básica en FastAPI.
+
+Para empaquetar y ejecutar esa aplicación en Docker, se deben seguir estos pasos:
+
+1. Crear el archivo `main.py` con el código de la instancia de FastAPI:
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/"")
+async def root():
+    return {""message"": ""Hello World""}
+```
+
+2. Crear una imagen de Docker que contenga la aplicación:
+
+```bash
+docker build -t my-fastapi-app .
+```
+
+3. Ejecutar la aplicación en un contenedor de Docker:
+
+```bash
+docker run -p 8000:8000 my-fastapi-app
+```
+
+Estos pasos crean una imagen de Docker que contiene la aplicación FastAPI y la ejecutan en un contenedor, pudiendo acceder a la aplicación en el puerto 8000 del host.",[1] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00258 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00177 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [3] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00157 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [4] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00174 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [5] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00158 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [6] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00180 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [7] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00270 | https://fastapi.tiangolo.com/deployment/docker/ || [8] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00173 | https://fastapi.tiangolo.com/tutorial/first-steps/,fastapi,,,,,,,,,
+F02,fastapi,directa,¿Cómo interpreta FastAPI los parámetros de consulta y qué función cumplen los valores predeterminados skip=0 y limit=10?,Los parámetros de función que no forman parte de la ruta se interpretan como parámetros de consulta. skip y limit se reciben desde la query string y sus valores predeterminados se utilizan cuando el cliente no los proporciona.,09_fastapi_query_params.md,"FastAPI, como parte de la biblioteca FastAPI y Starlette, maneja los parámetros de consulta de manera similar a otras bibliotecas de Python como Flask o Django. Los parámetros de consulta son aquellos que se envían en la URL de una solicitud HTTP y se pueden utilizar para filtrar o ordenar los datos que se devuelven.
+
+En FastAPI, los parámetros de consulta se manejan a través de la función `Query` de la biblioteca Starlette. Esta función permite definir parámetros de consulta que se pueden utilizar en la lógica de negocio del endpoint.
+
+Los valores predeterminados `skip=0` y `limit=10` son utilizados para controlar la paginación y el corte de resultados. Vamos a explicar cómo funcionan:
+
+1. **skip=0**: Este valor predeterminado indica que no se realizará ningún corte de resultados. Esto significa que se devolverán todos los resultados disponibles sin importar el tamaño de la página.
+
+2. **limit=10**: Este valor predeterminado establece el tamaño de la página. En este caso, se devolverán 10 resultados por página. Esto es útil para evitar que los endpoints devuelvan demasiados datos al mismo tiempo, lo que puede mejorar la eficiencia y la velocidad de respuesta.
+
+Aquí hay un ejemplo de cómo podrías definir un endpoint en FastAPI que utiliza estos valores:
+
+```python
+from fastapi import FastAPI, Query
+
+app = FastAPI()
+
+@app.get(""/items/"")
+async def read_items(skip: int = Query(0, description=""Número de elementos a saltar en la lista de items""), limit: int = Query(10, description=""Número de elementos a devolver"")):
+    items = [""item{}"".format(i) for i in range(1, 21)]  # Simulación de una lista de items
+    return items[skip : skip + limit]
+```
+
+En este ejemplo, si no se proporcionan valores para `skip` y `limit`, FastAPI los asignará a los valores predeterminados de `0` y `10`, respectivamente. Esto significa que se devolverán todos los items sin corte alguno y se devolverán 10 items por página.
+
+Es importante notar que si no se proporcionan valores para `skip` y `limit`, FastAPI los asignará a los valores predeterminados. Si no se proporcionan valores para `skip` y `limit`, FastAPI los asignará a los valores predeterminados de `0` y `10`, respectivamente. Esto permite una mejor experiencia de usuario y manejo de datos, ya que los usuarios pueden navegar por la lista de items sin tener que preocuparse por los parámetros de consulta.","FastAPI interpreta los parámetros de consulta de la siguiente manera:
+
+- Los parámetros de consulta se definen como `query` en FastAPI. En el ejemplo proporcionado en el fragmento [1], se utiliza la función `@app.get(""/items/"")` para definir una ruta que acepta parámetros de consulta. Los parámetros de consulta se definen como `skip` y `limit`, que son `int` con valores predeterminados de `0` y `10`, respectivamente.
+
+Los valores predeterminados `skip=0` y `limit=10` cumplen la función de:
+
+- `skip=0`: Este valor predeterminado permite que la consulta comience desde el primer elemento de la lista. Si no se especifica `skip`, FastAPI interpretará que se debe comenzar desde el inicio de la lista.
+- `limit=10`: Este valor predeterminado limita el número de elementos que se devolverán en cada consulta. Si no se especifica `limit`, FastAPI devolverá por defecto 10 elementos.
+
+En el ejemplo proporcionado en el fragmento [1], la función `read_item` acepta `skip` y `limit` como parámetros de consulta. Si no se proporcionan estos valores, FastAPI utilizará los valores predeterminados de `skip=0` y `limit=10`.
+
+No encuentro información suficiente en la documentación recuperada.",[1] fastapi | FastAPI Query Parameters | 09_fastapi_query_params.md | chunk_00208 | https://fastapi.tiangolo.com/tutorial/query-params/ || [2] fastapi | FastAPI Query Parameters | 09_fastapi_query_params.md | chunk_00217 | https://fastapi.tiangolo.com/tutorial/query-params/ || [3] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00241 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [4] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00243 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [5] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00238 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [6] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00185 | https://fastapi.tiangolo.com/tutorial/path-params/ || [7] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00234 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [8] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00190 | https://fastapi.tiangolo.com/tutorial/path-params/,fastapi,,,,,,,,,
+D02,docker,directa,"¿Qué función cumplen las instrucciones FROM, WORKDIR, COPY, RUN y CMD dentro de un Dockerfile?",FROM selecciona la imagen base; WORKDIR establece el directorio de trabajo; COPY copia archivos al sistema de archivos de la imagen; RUN ejecuta comandos durante la construcción; CMD define el comando predeterminado al iniciar un contenedor.,02_dockerfile.md,"Los archivos Dockerfile son scripts utilizados para crear imágenes Docker. Cada línea en un Dockerfile cumple una función específica para definir cómo debe ser la imagen Docker. Vamos a explicar brevemente cada una de las instrucciones que mencionaste:
+
+1. **FROM**: Esta instrucción define el punto de partida de la imagen. Es decir, indica qué imagen base se utilizará como punto de partida para crear la imagen Docker. Por ejemplo, `FROM python:3.8-slim` indica que usaremos la imagen de Python 3.8 con una versión ligera.
+
+2. **WORKDIR**: Esta instrucción establece el directorio de trabajo por defecto para las siguientes instrucciones en el Dockerfile. Por ejemplo, `WORKDIR /app` establece el directorio de trabajo como `/app`. Esto es útil para asegurar que las siguientes instrucciones se ejecuten en el directorio especificado.
+
+3. **COPY**: Esta instrucción copia archivos desde el directorio local del sistema de archivos del usuario hasta el directorio de trabajo por defecto. Por ejemplo, `COPY . /app` copiará todos los archivos y directorios desde el directorio actual del sistema de archivos local hasta `/app` dentro de la imagen Docker.
+
+4. **RUN**: Esta instrucción ejecuta comandos en el contenedor Docker. Puede ser utilizado para instalar paquetes, ejecutar scripts, etc. Por ejemplo, `RUN pip install -r requirements.txt` instalará los paquetes especificados en el archivo `requirements.txt` dentro del contenedor.
+
+5. **CMD**: Esta instrucción define los comandos por defecto que se ejecutarán cuando se inicie el contenedor. Puede ser utilizado para definir los parámetros de un comando, como los argumentos de un script. Por ejemplo, `CMD [""python"", ""app.py""]` indicará que se debe ejecutar el script `app.py` cuando se inicie el contenedor.
+
+Estas son las funciones básicas de las instrucciones más comunes en un Dockerfile. Hay otras instrucciones como `ENTRYPOINT`, `EXPOSE`, `VOLUME`, `HEALTHCHECK`, entre otras, que cumplen funciones similares pero con fines específicos.","Las instrucciones FROM, WORKDIR, COPY, RUN y CMD dentro de un Dockerfile cumplen funciones específicas en la creación de una imagen de contenedor:
+
+- **FROM**: Inicializa la imagen con una base, es decir, el sistema operativo y sus dependencias iniciales. Por ejemplo, en el fragmento [1], se inicia con `FROM node:22-alpine`.
+
+- **WORKDIR**: Establece el directorio de trabajo por defecto dentro de la imagen. En el fragmento [1], se establece `WORKDIR /app`.
+
+- **COPY**: Copia los archivos desde el sistema local al contenedor. En el fragmento [1], se copian todos los archivos desde el directorio actual (`.`) al contenedor.
+
+- **RUN**: Ejecuta comandos dentro del contenedor. En el fragmento [1], se instala las dependencias del proyecto con `RUN yarn install --production`.
+
+- **CMD**: Establece el comando por defecto que se ejecutará al iniciar el contenedor. En el fragmento [1], se establece `CMD [""node"", ""./src/index.js""]`.
+
+No encuentro información suficiente en la documentación recuperada.",[1] docker | Writing a Dockerfile | 02_dockerfile.md | chunk_00029 | https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/ || [2] docker | Writing a Dockerfile | 02_dockerfile.md | chunk_00030 | https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/ || [3] docker | Compose Quickstart | 06_compose_quickstart.md | chunk_00128 | https://docs.docker.com/compose/gettingstarted/ || [4] docker | Writing a Dockerfile | 02_dockerfile.md | chunk_00020 | https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/ || [5] docker | Writing a Dockerfile | 02_dockerfile.md | chunk_00024 | https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/ || [6] docker | Writing a Dockerfile | 02_dockerfile.md | chunk_00031 | https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/ || [7] docker | Writing a Dockerfile | 02_dockerfile.md | chunk_00019 | https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/ || [8] docker | Compose application model | 05_compose_concepts.md | chunk_00111 | https://docs.docker.com/compose/intro/compose-application-model/,docker,,,,,,,,,
+I02,integrated,integrada,"Si una API FastAPI escucha en el puerto 80 dentro del contenedor, ¿qué significa ejecutarla con la opción -p 8080:80 y cómo permite acceder a ella desde el host?","La opción publica el puerto 80 del contenedor en el puerto 8080 del host. Las solicitudes dirigidas al puerto 8080 del host se reenvían al puerto 80 del contenedor, haciendo accesible la API desde el host.",12_fastapi_docker.md;03_networking.md,"Cuando ejecutas una aplicación FastAPI con la opción `-p 8080:80`, estás utilizando Docker para redirigir el puerto 80 del contenedor a un puerto 8080 en el host. Esto significa que la aplicación FastAPI escucha en el puerto 80 dentro del contenedor, pero desde el host puedes acceder a ella en el puerto 8080.
+
+La opción `-p 8080:80` en Docker hace lo siguiente:
+
+1. **Puerto 8080 en el Host**: El puerto 8080 en el host es el puerto que realmente escucha la aplicación. Esto es importante porque el puerto 80 es un puerto de red predeterminado que se usa para HTTP y HTTPS.
+
+2. **Puerto 80 en el Contenedor**: Dentro del contenedor, la aplicación FastAPI escucha en el puerto 80. Esto significa que cualquier solicitud que llega a este puerto dentro del contenedor será procesada por la aplicación.
+
+3. **Redirección**: Docker redirige las solicitudes que llegan al puerto 8080 en el host al puerto 80 en el contenedor. Esto es posible porque Docker puede configurar una red virtual que permite que el puerto 8080 en el host se conecte al puerto 80 en el contenedor.
+
+Para acceder a la aplicación desde el host, simplemente accede a `http://localhost:8080` en tu navegador web. Esto te permitirá ver la aplicación que está ejecutándose en el contenedor, ya que el puerto 8080 en el host está redirigiendo a la aplicación que escucha en el puerto 80 dentro del contenedor.
+
+Es importante tener en cuenta que si tienes múltiples aplicaciones o servicios que necesitan acceder a puertos diferentes en el host, podrías necesitar usar múltiples opciones `-p` en Docker. Por ejemplo, si tienes otra aplicación que también escucha en el puerto 8080, podrías usar `-p 8080:8080` para la aplicación FastAPI y `-p 8080:80` para la otra aplicación.
+
+En resumen, la opción `-p 8080:80` permite que la aplicación FastAPI, que escucha en el puerto 80 dentro del contenedor, pueda ser accedida desde el host en el puerto 8080.","Ejecutar la API FastAPI con la opción `-p 8080:80` significa que el puerto 80 dentro del contenedor será accesible desde el host a través del puerto 8080 del host. Esto permite acceder a la API desde el host utilizando la dirección `http://localhost:8080` en lugar de `http://localhost:80`.
+
+La opción `-p 8080:80` en el comando `docker run` tiene el siguiente significado:
+
+- `-p 8080:80` indica que el puerto 80 del contenedor (el puerto donde la API escucha) se publicará en el puerto 8080 del host.
+- `8080` es el puerto de destino en el host.
+- `80` es el puerto de origen en el contenedor.
+
+Sin esta opción, el puerto 80 del contenedor no estaría disponible desde el host. Con esta opción, el host puede acceder a la API a través de la dirección `http://localhost:8080`, donde `localhost` se refiere al host mismo.
+
+Es importante notar que si no se especifica una dirección IP de host (`HOST_IP`), Docker publicará el puerto en todas las direcciones IP del host (`0.0.0.0` y `[::]`). Esto significa que la API estará disponible desde cualquier dirección IP del host.
+
+En resumen, la opción `-p 8080:80` permite que la API escuche en el puerto 80 dentro del contenedor y que este puerto esté disponible desde el host a través del puerto 8080 del host.",[1] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00284 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00258 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00281 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00278 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00268 | https://fastapi.tiangolo.com/deployment/docker/ || [6] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00310 | https://docs.docker.com/engine/network/port-publishing/ || [7] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00315 | https://docs.docker.com/engine/network/port-publishing/ || [8] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00311 | https://docs.docker.com/engine/network/port-publishing/ || [9] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00313 | https://docs.docker.com/engine/network/port-publishing/ || [10] docker | Networking overview | 03_networking.md | chunk_00043 | https://docs.docker.com/engine/network/,docker;fastapi,,,,,,,,,
+F03,fastapi,directa,¿Cómo se declara el cuerpo de una solicitud mediante un modelo Pydantic y qué hace FastAPI con los datos recibidos?,"Se define un modelo que hereda de pydantic.BaseModel y se declara como parámetro de la operación. FastAPI lee el cuerpo JSON, convierte los tipos cuando corresponde y valida los datos según el modelo.",10_fastapi_request_body.md,"En FastAPI, cuando se utiliza un modelo Pydantic como parte de una solicitud, se declara el cuerpo de la solicitud de la siguiente manera:
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.post(""/items/"")
+async def create_item(item: Item):
+    return item
+```
+
+En este ejemplo, `Item` es un modelo Pydantic que define los campos que se esperan en la solicitud. Los campos son `name`, `description`, `price`, y `tax`. `description` y `tax` son opcionales, lo que significa que no son requeridos en la solicitud.
+
+Cuando se envía una solicitud POST a la ruta `/items/`, FastAPI espera que el cuerpo de la solicitud contenga un objeto `Item`. Si el cuerpo de la solicitud contiene un objeto `Item` con los campos `name`, `price`, y `description` (si `description` está presente), FastAPI lo procesa y lo devuelve tal cual.
+
+El cuerpo de la solicitud se pasa a la función `create_item` como argumento `item`. FastAPI automáticamente deserializa el cuerpo de la solicitud en un objeto `Item` basado en los campos definidos en el modelo. Si el cuerpo de la solicitud no contiene los campos esperados, FastAPI lanzará una excepción de validación de modelo.
+
+Es importante notar que si el cuerpo de la solicitud no contiene todos los campos esperados, FastAPI lanzará una excepción de validación de modelo. Esto puede ser controlado mediante la configuración de `response_model` en la ruta correspondiente si se espera que la respuesta sea un objeto `Item`:
+
+```python
+from fastapi import FastAPI, Response
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.post(""/items/"")
+async def create_item(item: Item):
+    return item
+
+@app.post(""/items/"", response_model=Item)
+async def create_item(item: Item):
+    return item
+```
+
+En este caso item, FastAPI espera que el cuerpo de la solicitud contenga un objeto `Item`. Si el cuerpo de la solicitud no contiene todos los campos esperados, FastAPI lanzará una excepción de validación de modelo. Si el cuerpo de la solicitud contiene todos los campos esperados, FastAPI devolverá un objeto `Item` con los datos del cuerpo de la solicitud.","Para declarar el cuerpo de una solicitud mediante un modelo Pydantic en FastAPI, se utiliza la clase `BaseModel` de Pydantic. Aquí hay un ejemplo de cómo hacerlo:
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+
+app = FastAPI()
+
+@app.post(""/items/"")
+async def create_item(item: Item):
+    return item
+```
+
+En este ejemplo, el modelo `Item` define los campos que se esperan en el cuerpo de la solicitud. FastAPI reconoce que los campos que coinciden con los parámetros de la función deben provenir del cuerpo de la solicitud, mientras que los campos que son modelos Pydantic deben ser tomados del cuerpo de la solicitud.
+
+FastAPI reconoce automáticamente los parámetros de la función que coinciden con los parámetros de ruta y los campos que son modelos Pydantic, y toma los datos de los lugares correctos. En este caso, FastAPI toma los datos del cuerpo de la solicitud y los asigna al objeto `Item` que se espera en la función.
+
+No encuentro información suficiente en la documentación recuperada.",[1] fastapi | FastAPI Request Body | 10_fastapi_request_body.md | chunk_00219 | https://fastapi.tiangolo.com/tutorial/body/ || [2] fastapi | FastAPI Request Body | 10_fastapi_request_body.md | chunk_00230 | https://fastapi.tiangolo.com/tutorial/body/ || [3] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00181 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [4] fastapi | FastAPI Request Body | 10_fastapi_request_body.md | chunk_00218 | https://fastapi.tiangolo.com/tutorial/body/ || [5] fastapi | FastAPI Request Body | 10_fastapi_request_body.md | chunk_00229 | https://fastapi.tiangolo.com/tutorial/body/ || [6] fastapi | FastAPI Request Body | 10_fastapi_request_body.md | chunk_00231 | https://fastapi.tiangolo.com/tutorial/body/ || [7] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00204 | https://fastapi.tiangolo.com/tutorial/path-params/ || [8] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00177 | https://fastapi.tiangolo.com/tutorial/first-steps/,fastapi,,,,,,,,,
+D03,docker,aplicada,¿Qué diferencia existe entre declarar EXPOSE en un Dockerfile y publicar un puerto con -p o --publish?,"EXPOSE documenta o indica el puerto que la aplicación dentro de la imagen espera utilizar, pero por sí solo no publica el puerto en el host. Para reenviar tráfico entre un puerto del host y uno del contenedor se utiliza -p o --publish.",02_dockerfile.md;03_networking.md,"Ambas opciones en un Dockerfile son usadas para indicar a Docker cuáles puertos deben ser expuestos por el contenedor, pero hay algunas diferencias clave entre ellas:
+
+1. **EXPOSE en el Dockerfile**:
+   - **Propósito**: EXPOSE es una instrucción que no crea ningún servicio o puertos en el contenedor. Es una forma de indicar al usuario o al sistema operativo que el contenedor está esperando por conexiones en ciertos puertos.
+   - **Función**: EXPOSE no crea un servicio ni establece una red de escucha. Es solo una indicación de puertos que el contenedor puede usar.
+   - **Ejemplo**: 
+     ```Dockerfile
+     FROM python:3.8
+     EXPOSE 8080
+     ```
+   - En este ejemplo, el contenedor está configurado para esperar conexiones en el puerto 8080, pero no está escuchando por ese puerto.
+
+2. **-p o --publish en la línea de comandos de Docker**:
+   - **Propósito**: -p o --publish es una opción que se usa cuando se ejecuta el comando `docker run` para crear un contenedor. Con esta opción, se establece una red de escucha en el host para el puerto especificado.
+   - **Función**: -p o --publish establece una red de escucha en el host para el puerto especificado, permitiendo que el contenedor escuche en ese puerto y el host pueda acceder a él.
+   - **Ejemplo**: 
+     ```sh
+     docker run -p 8080:8080 my_image
+     ```
+   - En este ejemplo, el contenedor escucha en el puerto 8080, y el host puede acceder a él a través del puerto 8080 del host.
+
+En resumen, EXPOSE es una indicación de puertos que el contenedor puede usar, mientras que -p o --publish establece una red de escucha en el host para esos puertos. La EXPOSE no crea un servicio ni establece una red de escucha, mientras que -p o --publish hace que el host pueda acceder a los puertos del contenedor.",No encuentro información suficiente en la documentación recuperada.,[1] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00310 | https://docs.docker.com/engine/network/port-publishing/ || [2] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00315 | https://docs.docker.com/engine/network/port-publishing/ || [3] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00311 | https://docs.docker.com/engine/network/port-publishing/ || [4] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00313 | https://docs.docker.com/engine/network/port-publishing/ || [5] docker | Networking overview | 03_networking.md | chunk_00043 | https://docs.docker.com/engine/network/ || [6] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00314 | https://docs.docker.com/engine/network/port-publishing/ || [7] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00312 | https://docs.docker.com/engine/network/port-publishing/ || [8] docker | Docker overview | 01_docker_overview.md | chunk_00017 | https://docs.docker.com/get-started/docker-overview/,docker,,,,,,,,,
+I03,integrated,integrada,"En una aplicación con una API FastAPI y otro servicio en contenedores separados, ¿qué se declara en el modelo de Docker Compose y qué sucede al ejecutar docker compose up?","El archivo Compose declara los servicios de la aplicación y puede definir redes y volúmenes compartidos. Al ejecutar docker compose up, Compose inicia los servicios y crea las redes y volúmenes necesarios definidos por la aplicación.",12_fastapi_docker.md;05_compose_concepts.md;06_compose_quickstart.md,"Cuando se tiene una aplicación con una API FastAPI y otro servicio en contenedores separados, el archivo de Docker Compose se utiliza para definir y controlar la configuración de los contenedores. Este archivo permite que se creen, se inicie y se administre un conjunto de contenedores de manera coherente.
+
+### Modelo de Docker Compose
+
+El archivo de Docker Compose se suele llamar `docker-compose.yml` y se encuentra en la raíz del directorio de la aplicación. Aquí se define la configuración de los contenedores, incluyendo:
+
+1. **Servicios**: Cada servicio es una definición de un contenedor Docker. Cada servicio tiene un nombre único y puede tener configuraciones específicas.
+2. **Volumen de datos**: Estos son archivos o directorios que se copian entre el host y el contenedor.
+3. **Dependencias**: Se pueden definir dependencias entre servicios para asegurar que un servicio inicie antes de otro.
+4. **Configuraciones**: Se pueden definir configuraciones globales que se aplican a todos los servicios.
+
+### Ejemplo de `docker-compose.yml`
+
+```yaml
+version: '3'
+services:
+  api:
+    image: fastapi:latest
+    ports:
+      - ""8000:8000""
+    environment:
+      - DATABASE_URL=sqlite:///db.sqlite3
+      - SECRET_KEY=supersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    volumes:
+      - ./api/db.sqlite3:/app/db.sqlite3
+    depends_on:
+      - db
+  db:
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=example
+      - POSTGRES_USER=exampleuser
+      - POSTGRES_PASSWORD=examplepass
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:
+```
+
+### Ejecutar `docker compose up`
+
+Cuando se ejecuta `docker compose up`, Docker Compose hace lo siguiente:
+
+1. **Revisa el archivo de Docker Compose**: Comprueba si el archivo `docker-compose.yml` está correctamente formateado y si todas las definiciones de servicios están correctas.
+2. **Crea los contenedores**: Crea los contenedores definidos en el archivo de Docker Compose. Si un servicio depende de otro, Docker Compose asegura que el servicio dependiente inicie después de que el servicio dependiente inicie.
+3. **Arranca los servicios**: Inicia los servicios definidos en el archivo de Docker Compose. Si un servicio depende de otro, Docker Compose asegura que el servicio dependiente inicie después de que el servicio dependiente inicie.
+4. **Configura los servicios**: Configura los servicios según las configuraciones definidas en el archivo de Docker Compose.
+5. **Copia los datos de volumen**: Copia los datos de volumen entre el host y los contenedores.
+6. **Mantiene los servicios**: Si el archivo de Docker Compose cambia, Docker Compose puede detener y reiniciar los servicios para reflejar los cambios.
+
+### Ejecutar `docker compose down`
+
+Cuando se ejecuta `docker compose down`, Docker Compose hace lo siguiente:
+
+1. **Detiene los servicios**: Detiene los servicios definidos en el archivo de Docker Compose.
+2. **Elimina los contenedores**: Elimina los contenedores definidos en el archivo de Docker Compose.
+3. **Elimina los volumenes**: Elimina los volumenes definidos en el archivo de Docker Compose.
+
+### Ejemplo de `docker compose down`
+
+```sh
+docker compose down
+```
+
+Esto detiene todos los servicios y elimina los contenedores y los volumenes.
+
+### Conclusión
+
+Cuando se ejecuta `docker compose up`, Docker Compose crea, arranca y configura los contenedores definidos en el archivo de Docker Compose, asegurando que los servicios dependientes inician en el orden correcto. Esto facilita la gestión de múltiples servicios en contenedores y permite una configuración y ejecución coherentes de la aplicación.","La documentación recuperada permite explicar por separado la parte de FastAPI y la de Docker Compose, pero no demuestra una configuración integrada completa.
+
+**FastAPI:** las fuentes recuperadas describen la construcción de una imagen de contenedor Linux y muestran el uso de un Dockerfile para preparar la aplicación. [1], [2], [3].
+
+**Docker Compose:** la documentación explica que `compose.yaml` es el archivo YAML utilizado para configurar los servicios de la aplicación y que Compose CLI crea e inicia esos servicios. [6], [10].
+
+La documentación recuperada también identifica `docker compose up` como el comando para crear e iniciar los servicios definidos en el archivo Compose. [10].
+
+**Límite de la evidencia:** los fragmentos recuperados no muestran un ejemplo que conecte explícitamente una aplicación FastAPI con un servicio de Docker Compose. Por eso no puedo proporcionar un `compose.yaml` integrado ni afirmar valores de `build`, `image`, `ports`, `depends_on`, `volumes`, variables de entorno, redes o una base de datos sin documentación adicional.",[1] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00284 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00258 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00281 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00278 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00268 | https://fastapi.tiangolo.com/deployment/docker/ || [6] docker | Compose application model | 05_compose_concepts.md | chunk_00110 | https://docs.docker.com/compose/intro/compose-application-model/ || [7] docker | Compose application model | 05_compose_concepts.md | chunk_00111 | https://docs.docker.com/compose/intro/compose-application-model/ || [8] docker | Docker overview | 01_docker_overview.md | chunk_00002 | https://docs.docker.com/get-started/docker-overview/ || [9] docker | Docker overview | 01_docker_overview.md | chunk_00001 | https://docs.docker.com/get-started/docker-overview/ || [10] docker | Compose application model | 05_compose_concepts.md | chunk_00119 | https://docs.docker.com/compose/intro/compose-application-model/,docker;fastapi,,,,,,,,,
+F04,fastapi,directa,¿Qué problema resuelven las dependencias de FastAPI y cómo se reutiliza una función mediante Depends en distintos endpoints?,"Las dependencias permiten compartir lógica o recursos entre operaciones. Se define una función de dependencia y se declara en los parámetros de los endpoints mediante Depends (o Annotated con Depends), para que FastAPI la ejecute e inyecte su resultado.",11_fastapi_dependencies.md,"Las dependencias en FastAPI son una forma de reutilizar código y evitar la repetición de código en diferentes puntos de entrada de tu aplicación. Esto no solo mejora la legibilidad y mantenibilidad del código, sino que también puede mejorar el rendimiento de la aplicación.
+
+Las dependencias en FastAPI se definen como funciones que retornan un valor. Estas funciones pueden recibir parámetros que son otras dependencias. Las dependencias pueden ser de tipo de datos como `str`, `int`, `list`, `dict`, etc., o pueden ser funciones que retornan un valor de tipo de datos.
+
+Las dependencias se definen en el archivo `dependencies.py` y luego se importan y se utilizan en los endpoints de tu aplicación. Por ejemplo:
+
+```python
+from fastapi import FastAPI, Depends
+from fastapi.security import OAuth2PasswordBearer
+
+app = FastAPI()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=""token"")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    # Aquí puedes implementar la lógica para obtener el usuario actual a partir de un token.
+    return {""username"": ""user123""}
+
+@app.get(""/users/me"")
+async def read_users_me(current_user: dict = Depends(get_current_user)):
+    return current_user
+```
+
+En este ejemplo, `get_current_user` es una función de dependencia que se utiliza en el endpoint `/users/me`. La función `get_current_user` recibe un parámetro `token` que es una dependencia de tipo `OAuth2PasswordBearer`. Esto significa que FastAPI buscará una ruta `/token` en la aplicación para obtener el token.
+
+La función `get_current_user` retorna un diccionario que representa al usuario actual. Este diccionario se pasa como parámetro a la función `read_users_me`, que es el endpoint que se ejecutará una vez que se ha validado el token.
+
+La función `Depends` se utiliza para asegurar que la función de dependencia se ejecute antes de que la función de endpoint se ejecute. Esto es útil para asegurar que la función de endpoint solo se ejecute si la dependencia se ha cumplido.
+
+En resumen, las dependencias en FastAPI permiten reutilizar código y aseguran que ciertas operaciones se realicen antes de que se ejecute un endpoint, lo que puede ser útil para cosas como autenticación o autorización.","Las dependencias de FastAPI resuelven el problema de reutilizar funciones en distintos endpoints de manera eficiente y segura. Esto se logra mediante la utilización de la función `Depends`, que permite definir una función que se puede utilizar como dependencia en otros endpoints.
+
+Las dependencias de FastAPI permiten que una función pueda ser reutilizada en múltiples endpoints. Esto se logra definiendo una función que se puede utilizar como dependencia con la función `Depends`. Por ejemplo, si tenemos una función que realiza una operación común, como filtrar datos, podemos definirla como una dependencia y luego utilizarla en múltiples endpoints.
+
+En cuanto a la reutilización de una función mediante `Depends` en distintos endpoints, se puede hacer de la siguiente manera:
+
+```
+from typing import Annotated
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {""q"": q, ""skip"": skip, ""limit"": limit}
+
+@app.get(""/items/"")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+@app.get(""/users/"")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+```
+
+En este ejemplo, `common_parameters` es una función que toma los parámetros `q`, `skip` y `limit`. Esta función se define como una dependencia en los endpoints `/items/` y `/users/`, lo que significa que se utilizará `common_parameters` en cada llamada a estos endpoints.
+
+Además, la documentación menciona que `Depends` se puede usar de la misma manera que `Body`, `Query`, etc. con los parámetros de una función de ruta:
+
+```
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {""q"": q, ""skip"": skip, ""limit"": limit}
+
+@app.get(""/items/"")
+async def read_items(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+
+@app.get(""/users/"")
+async def read_users(commons: Annotated[dict, Depends(common_parameters)]):
+    return commons
+```
+
+En este caso ""Dependable"" se define como una función que se puede utilizar como dependencia en los endpoints. Esto permite que la función `common_parameters` sea reutilizada en múltiples endpoints sin tener que definirla nuevamente en cada endpoint.
+
+Por lo tanto, las dependencias de FastAPI permiten reutilizar funciones en múltiples endpoints de manera eficiente y segura, utilizando la función `Depends` para definir una función como dependencia en los endpoints.",[1] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00234 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [2] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00237 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [3] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00242 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [4] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00240 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [5] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00257 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [6] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00254 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [7] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00269 | https://fastapi.tiangolo.com/deployment/docker/ || [8] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00255 | https://fastapi.tiangolo.com/tutorial/dependencies/,fastapi,,,,,,,,,
+D04,docker,aplicada,¿Cómo pueden comunicarse dos contenedores conectados a una red bridge definida por el usuario y qué ventaja ofrece respecto a la red bridge predeterminada?,Los contenedores conectados a la misma red bridge definida por el usuario pueden comunicarse entre sí y resolverse por nombre o alias mediante DNS. Esto ofrece una configuración más conveniente y mejor aislamiento que la red bridge predeterminada.,03_networking.md,"Cuando dos contenedores están conectados a una red bridge definida por el usuario, pueden comunicarse entre sí de manera similar a si fueran contenedores en la misma red predeterminada. Sin embargo, hay algunas diferencias importantes y ventajas que ofrecen:
+
+### Comunicación entre Contenedores
+1. **Red Bridge Definida por el Usuario**: En este escenario, el usuario define la red bridge. Esto permite que los contenedores se comuniquen entre sí y con el host de Docker de manera más controlada y personalizada. Por ejemplo, si los contenedores necesitan acceder a servicios específicos del host, pueden ser configurados para estar en la misma red bridge.
+
+2. **Red Bridge Predeterminada**: Docker predetermina una red bridge que se llama `docker0`. Todos los contenedores que no están en una red definida por el usuario están en esta red bridge predeterminada. Los contenedores en esta red pueden comunicarse entre sí y con el host, pero no pueden comunicarse con otros contenedores que están en redes definidas por el usuario.
+
+### Ventajas de Usar Redes Definidas por el Usuario
+
+1. **Control y Seguridad**: Puedes controlar qué contenedores están en la misma red y qué servicios pueden acceder entre sí. Esto puede ser útil para mantener la seguridad y la integridad de tu entorno de desarrollo o producción.
+
+2. **Flexibilidad**: Puedes configurar redes específicas para diferentes servicios o aplicaciones. Por ejemplo, podrías tener una red para aplicaciones web, otra para bases de datos y otra para servicios de notificación. Esto puede facilitar la administración y la escalabilidad.
+
+3. **Isolación**: Puedes aislar diferentes servicios o aplicaciones en redes diferentes para evitar que se interpongan entre sí. Esto puede ser especialmente útil en entornos de producción donde la seguridad es crucial.
+
+4. **Facilidad de Uso**: Puedes crear, modificar y eliminar redes de manera sencilla, lo que facilita la gestión de múltiples entornos de desarrollo o producción.
+
+### Ejemplo de Configuración de Redes Definidas por el Usuario
+
+Aquí tienes un ejemplo de cómo podrías configurar una red bridge definida por el usuario en Docker:
+
+```bash
+docker network create my_bridge_network
+```
+
+Luego, puedes asignar contenedores a esta red:
+
+```bash
+docker run --network my_bridge_network -d nginx
+docker run --network my_bridge_network -d my_web_app
+```
+
+En este ejemplo, `my_web_app` y `nginx` estarían en la misma red `my_bridge_network` y podrían comunicarse entre sí.
+
+### Conclusión
+La comunicación entre contenedores conectados a una red bridge definida por el usuario ofrece mayor control y flexibilidad, especialmente en entornos donde la seguridad y la separación de responsabilidades son importantes. Además, permite una configuración más personalizada y escalable de tu entorno de desarrollo o producción.","Dos contenedores conectados a una red bridge definida por el usuario pueden comunicarse utilizando las direcciones IP de los contenedores para la comunicación interna, sin necesidad de que compartan un mismo nombre. Esto es diferente a la red bridge predeterminada, donde los contenedores conectados a la red por defecto no tienen acceso directo a las direcciones IP de otros contenedores en otras redes.
+
+La red bridge predeterminada permite que los contenedores conectados a ella tengan acceso a servicios de red fuera del host, pero no tienen acceso directo a los contenedores en otras redes. En cambio, la red bridge definida por el usuario permite que los contenedores conectados a ella tengan acceso directo a los contenedores en otras redes, lo que facilita la comunicación entre contenedores de diferentes grupos.
+
+La ventaja de esta configuración es que permite separar grupos de contenedores que deben tener acceso completo entre sí, pero deben tener acceso limitado a contenedores en otros grupos. Además, los contenedores conectados a una red definida por el usuario pueden comunicarse entre sí utilizando direcciones IP de contenedores o nombres de contenedores, en lugar de solo direcciones IP de contenedores en la misma red.",[1] docker | Networking overview | 03_networking.md | chunk_00040 | https://docs.docker.com/engine/network/ || [2] docker | Networking overview | 03_networking.md | chunk_00035 | https://docs.docker.com/engine/network/ || [3] docker | Networking overview | 03_networking.md | chunk_00036 | https://docs.docker.com/engine/network/ || [4] docker | Networking overview | 03_networking.md | chunk_00041 | https://docs.docker.com/engine/network/ || [5] docker | Networking overview | 03_networking.md | chunk_00043 | https://docs.docker.com/engine/network/ || [6] docker | Networking overview | 03_networking.md | chunk_00033 | https://docs.docker.com/engine/network/ || [7] docker | Networking overview | 03_networking.md | chunk_00032 | https://docs.docker.com/engine/network/ || [8] docker | Networking overview | 03_networking.md | chunk_00053 | https://docs.docker.com/engine/network/,docker,,,,,,,,,
+I04,integrated,integrada,"Si una API FastAPI guarda archivos dentro de su contenedor y esos archivos deben sobrevivir a la eliminación o recreación del contenedor, ¿qué mecanismo de Docker conviene utilizar y por qué?",Conviene utilizar un volumen Docker montado en la ruta donde la aplicación guarda los archivos. Los volúmenes son almacenes persistentes administrados por Docker y su ciclo de vida es independiente del contenedor.,12_fastapi_docker.md;04_volumes.md,"Para que los archivos guardados por una API FastAPI dentro de su contenedor sobrevivan a la eliminación o recreación del contenedor, se puede utilizar el mecanismo de Docker conocido como ""volumes"". Los volumes son una forma de persistencia de datos en Docker que se mantienen independientemente de la eliminación o recreación de los contenedores.
+
+### ¿Por qué utilizar volumes?
+
+1. **Persistencia de Datos**: Los volumes permiten que los datos se mantengan inalterados incluso si el contenedor se reinicia o se elimina. Esto es especialmente útil para archivos que la aplicación necesita para funcionar correctamente, como archivos de configuración o archivos de entrada/salida.
+
+2. **Desacoplamiento de Datos y Contenedores**: Los volumes se crean fuera del contenedor, lo que significa que los datos persisten independientemente del contenedor. Esto facilita la gestión de datos y permite que múltiples contenedores accedan a los mismos datos sin necesidad de compartir archivos físicos.
+
+3. **Facilidad de Uso**: Los volumes son fáciles de configurar y usar. Puedes especificar un volumen en la definición de la imagen o en la configuración del contenedor.
+
+### Configuración de Volumes en Docker
+
+Para configurar un volumen en Docker, puedes usar la opción `-v` o `--volume` al crear el contenedor. Por ejemplo:
+
+```bash
+docker run -d -p 8000:8000 -v /path/on/host:/path/in/container my-fastapi-app
+```
+
+En este ejemplo, `/path/on/host` es la ruta en el sistema de archivos local donde se guardará el volumen, mientras que `/path/in/container` es la ruta dentro del contenedor donde se guardará el volumen.
+
+### Ejemplo de Configuración en Docker Compose
+
+Si estás utilizando Docker Compose, puedes configurar un volumen de la siguiente manera:
+
+```yaml
+version: '3'
+services:
+  my-fastapi-app:
+    image: my-fastapi-app
+    volumes:
+      - /path/on/host:/path/in/container
+```
+
+### Consideraciones Adicionales
+
+1. **Seguridad**: Los volumenes no son seguros para almacenar datos sensibles como contraseñas o claves de acceso. Si es necesario, considera usar un volumen de datos y un volumen de configuración separados.
+
+2. **Escalabilidad**: Los volumenes pueden ser difíciles de gestionar en entornos de alta escalabilidad, ya que cada volumen puede requerir una configuración adicional. En estos casos, podrías considerar usar un sistema de almacenamiento de datos externo como un servicio de almacenamiento de blobs de Docker (como Google Cloud Storage o AWS S3).
+
+3. **Manejo de Datos**: Si los archivos que se guardan en el volumen son grandes o si la aplicación necesita manejar archivos de manera eficiente, considera usar un sistema de archivos de Docker como `overlayfs` o `aufs`, que pueden ofrecer mejor rendimiento para archivos grandes.
+
+En resumen, utilizar volumes es una solución efectiva para mantener los archivos de la aplicación persistente en Docker, asegurando que la aplicación funcione correctamente incluso después de la eliminación o recreación del contenedor.",No encuentro información suficiente en la documentación recuperada.,[1] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00284 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00258 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00281 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00278 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00268 | https://fastapi.tiangolo.com/deployment/docker/ || [6] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00264 | https://fastapi.tiangolo.com/deployment/docker/ || [7] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00308 | https://fastapi.tiangolo.com/deployment/docker/ || [8] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00259 | https://fastapi.tiangolo.com/deployment/docker/,fastapi,,,,,,,,,
+F05,fastapi,sin_evidencia,¿Qué versión exacta de FastAPI está instalada actualmente en mi computadora?,No se puede determinar con la documentación indexada. Es un dato del entorno local y requiere inspeccionar la instalación de Python del usuario.,,"Para determinar la versión exacta de FastAPI que tienes instalada en tu computadora, puedes seguir estos pasos:
+
+1. Abre una terminal o consola de comandos.
+
+2. Escribe el siguiente comando y presiona Enter:
+   ```
+   pip show fastapi
+   ```
+   
+   Esto mostrará información sobre la instalación de FastAPI, incluyendo la versión.
+
+3. Si FastAPI no está instalado o no tienes la opción de `pip show fastapi`, puedes intentar instalarlo con la versión específica que deseas, por ejemplo:
+   ```
+   pip install fastapi==0.64.0
+   ```
+   
+   Luego, puedes verificar la versión instalada con el comando anterior.
+
+Recuerda que FastAPI es una biblioteca de Python, por lo que la versión que tienes instalada dependerá de cómo la instalaste. Si no tienes FastAPI instalado, puedes hacerlo con `pip install fastapi` para la versión más reciente.",No encuentro información suficiente en la documentación recuperada.,[1] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00157 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [2] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00234 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [3] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00258 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00172 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [5] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00185 | https://fastapi.tiangolo.com/tutorial/path-params/ || [6] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00183 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [7] fastapi | FastAPI Query Parameters | 09_fastapi_query_params.md | chunk_00208 | https://fastapi.tiangolo.com/tutorial/query-params/ || [8] fastapi | FastAPI Dependencies | 11_fastapi_dependencies.md | chunk_00238 | https://fastapi.tiangolo.com/tutorial/dependencies/,fastapi,,,,,,,,,
+D05,docker,sin_evidencia,¿Qué versión exacta de Docker Engine está instalada actualmente en mi computadora?,No se puede determinar con la documentación indexada. Es un dato del entorno local y requiere consultar la instalación de Docker del usuario.,,"Para determinar la versión exacta de Docker Engine instalada en tu computadora, puedes seguir estos pasos:
+
+1. Abre una terminal o la consola de comandos de tu sistema operativo.
+
+2. Escribe el siguiente comando y presiona Enter:
+   ```
+   docker --version
+   ```
+
+Este comando mostrará la versión de Docker que tienes instalada en tu sistema. Por ejemplo, la salida podría ser algo como:
+```
+Docker version 20.10.7, build f0df350
+```
+
+Si no ves ninguna salida o si no puedes ejecutar el comando, es posible que no tengas Docker instalado o que no esté configurado correctamente en tu sistema. En ese caso, deberías seguir los pasos para instalar Docker en tu sistema operativo.",No encuentro información suficiente en la documentación recuperada.,[1] docker | Docker overview | 01_docker_overview.md | chunk_00016 | https://docs.docker.com/get-started/docker-overview/ || [2] docker | Docker overview | 01_docker_overview.md | chunk_00002 | https://docs.docker.com/get-started/docker-overview/ || [3] docker | Docker overview | 01_docker_overview.md | chunk_00000 | https://docs.docker.com/get-started/docker-overview/ || [4] docker | Networking overview | 03_networking.md | chunk_00037 | https://docs.docker.com/engine/network/ || [5] docker | Docker overview | 01_docker_overview.md | chunk_00010 | https://docs.docker.com/get-started/docker-overview/ || [6] docker | Docker overview | 01_docker_overview.md | chunk_00018 | https://docs.docker.com/get-started/docker-overview/ || [7] docker | Docker overview | 01_docker_overview.md | chunk_00007 | https://docs.docker.com/get-started/docker-overview/ || [8] docker | Networking overview | 03_networking.md | chunk_00033 | https://docs.docker.com/engine/network/,docker,,,,,,,,,
+I05,integrated,sin_evidencia,¿Cuál es la dirección IP y el puerto del host que Docker asignó en este momento al contenedor FastAPI que está ejecutándose en mi computadora?,No se puede determinar con la documentación estática indexada. Se necesita consultar el estado real del contenedor y sus puertos publicados en el entorno local.,,"Para determinar la dirección IP y el puerto que Docker ha asignado al contenedor FastAPI que está ejecutándose en tu computadora, puedes seguir estos pasos:
+
+1. **Verificar el ID del contenedor**: Primero, necesitas saber el ID del contenedor que estás utilizando. Puedes obtener este ID ejecutando el siguiente comando en tu terminal:
+   ```bash
+   docker ps
+   ```
+   Esto mostrará una lista de todos los contenedores que estás ejecutando, incluyendo el ID del contenedor.
+
+2. **Consultar la configuración del contenedor**: Una vez que tengas el ID del contenedor, puedes consultar la configuración del contenedor para obtener la dirección IP y el puerto que Docker ha asignado. Para hacer esto, usa el siguiente comando:
+   ```bash
+   docker inspect <ID_DEL_CONTENEDOR>
+   ```
+   Reemplaza `<ID_DEL_CONTENEDOR>` con el ID del contenedor que has obtenido anteriormente.
+
+3. **Extraer la dirección IP y el puerto**: Dentro de la salida de `docker inspect`, busca la sección `NetworkSettings` y luego la sección `IPAddress` para obtener la dirección IP asignada al contenedor. Para el puerto, busca la sección `Ports` que mostrará una lista de puertos que están disponibles en el contenedor y cómo están redirigidos en tu máquina local.
+
+Por ejemplo, si el ID del contenedor es `abc123`, la consulta sería:
+```bash
+docker inspect abc123
+```
+Después de obtener la salida, busca la sección `NetworkSettings` y luego `IPAddress` para la dirección IP y la sección `Ports` para los puertos.
+
+Recuerda que la dirección IP que verás será la dirección IP de la máquina host (la máquina que ejecuta Docker) y no la dirección IP del contenedor. Si necesitas acceder al contenedor desde otro dispositivo, necesitarás usar la dirección IP de la máquina host en lugar de la dirección IP del contenedor.",No encuentro información suficiente en la documentación recuperada.,[1] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00284 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00258 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00281 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00278 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00268 | https://fastapi.tiangolo.com/deployment/docker/ || [6] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00310 | https://docs.docker.com/engine/network/port-publishing/ || [7] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00315 | https://docs.docker.com/engine/network/port-publishing/ || [8] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00311 | https://docs.docker.com/engine/network/port-publishing/ || [9] docker | Port publishing and mapping | 13_docker_port_publishing.md | chunk_00313 | https://docs.docker.com/engine/network/port-publishing/ || [10] docker | Networking overview | 03_networking.md | chunk_00043 | https://docs.docker.com/engine/network/,docker;fastapi,,,,,,,,,

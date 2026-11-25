@@ -1,0 +1,164 @@
+﻿id,domain,category,question,expected_answer,expected_sources,answer_base,answer_rag,retrieved_sources,retrieved_domains,retrieval_relevant,accuracy_base,accuracy_rag,grounded_base,grounded_rag,hallucination_base,hallucination_rag,notes,execution_error
+F01,fastapi,directa,¿Cómo declara FastAPI un parámetro de ruta llamado item_id como entero y qué ocurre si la URL contiene un valor no numérico?,"Se declara un marcador {item_id} en la ruta y un parámetro item_id: int en la función. FastAPI convierte el valor recibido a entero y valida el tipo; si no puede convertirlo, devuelve un error de validación.",08_fastapi_path_params.md,"En FastAPI, puedes declarar un parámetro de ruta llamado `item_id` como entero utilizando la siguiente sintaxis:
+
+```python
+from fastapi import FastAPI, Path
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Path(..., ge=1)):
+    # Tu código aquí
+    pass
+```
+
+En este ejemplo, `Path(..., ge=1)` indica que el parámetro `item_id` debe ser un número entero mayor o igual a 1. Si intentas acceder a una ruta con un valor no numérico, FastAPI lanzará una excepción de tipo `HTTPException` con un código de estado HTTP 422 (Unprocessable Entity), que indica que la solicitud no puede ser procesada debido a un contenido no procesable.
+
+Si deseas manejar este error de manera más personalizada, puedes crear una función de manejo de errores personalizada que maneje la excepción y devuelva una respuesta adecuada. Por ejemplo:
+
+```python
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Path(..., ge=1)):
+    if not isinstance(item_id, int):
+        raise HTTPException(status_code=422, detail=""El parámetro item_id debe ser un número entero."")
+    # Tu código aquí
+    pass
+```
+
+En este caso, si el valor de `item_id` no es un número entero, se lanza una excepción HTTP 422 con un mensaje de error personalizado. Esto permite que el cliente (por ejemplo, una aplicación cliente web o una API de terceros) pueda manejar este error de manera adecuada.","FastAPI declara un parámetro de ruta llamado `item_id` como entero utilizando el siguiente código:
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int):
+    return {""item_id"": item_id}
+```
+
+Si la URL contiene un valor no numérico, FastAPI lanzará una excepción `HTTPException` con el código de estado 404 (Not Found) y un mensaje de error que indica que la ruta no se pudo encontrar. Esto ocurre porque FastAPI espera que el parámetro `item_id` sea un número entero y no acepta valores no numéricos.",[1] fastapi | FastAPI Request Body | 10_fastapi_request_body.md | chunk_00223 | https://fastapi.tiangolo.com/tutorial/body/ || [2] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00185 | https://fastapi.tiangolo.com/tutorial/path-params/ || [3] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00199 | https://fastapi.tiangolo.com/tutorial/path-params/ || [4] fastapi | FastAPI Path Parameters | 08_fastapi_path_params.md | chunk_00187 | https://fastapi.tiangolo.com/tutorial/path-params/,fastapi,,,,,,,,,
+D01,docker,directa,¿Cuál es la diferencia entre una imagen Docker y un contenedor?,Una imagen es una plantilla de solo lectura que contiene instrucciones y elementos para crear un contenedor. Un contenedor es una instancia ejecutable de esa imagen.,01_docker_overview.md,"Una imagen Docker es como un archivo de código fuente en un proyecto de software. Es un esquema de construcción que contiene todos los componentes necesarios para crear un contenedor. Las imágenes Docker incluyen el sistema operativo, los paquetes de software, los archivos de configuración e incluso los scripts necesarios para ejecutar un servicio.
+
+Por otro lado, un contenedor es una ejecución de una imagen Docker. Es como un contenedor de papel higiénico que se llena con la imagen Docker. Un contenedor es una ejecución de una imagen, que tiene su propio espacio de nombres de sistema, su propio espacio de nombres de archivos y su propio entorno de ejecución. Esto significa que cada contenedor puede ejecutarse de manera independiente, incluso si comparten la misma imagen Docker.
+
+En resumen, una imagen Docker es el esquema de construcción que se puede usar para crear múltiples contenedores, mientras que un contenedor es una ejecución específica de una imagen.","Una imagen Docker es una plantilla de código fuente que incluye las instrucciones necesarias para crear un contenedor. Un contenedor es la ejecución de una imagen Docker, que es una unidad de distribución y prueba de aplicaciones.",[1] docker | Docker overview | 01_docker_overview.md | chunk_00012 | https://docs.docker.com/get-started/docker-overview/ || [2] docker | Docker overview | 01_docker_overview.md | chunk_00002 | https://docs.docker.com/get-started/docker-overview/ || [3] docker | Docker overview | 01_docker_overview.md | chunk_00016 | https://docs.docker.com/get-started/docker-overview/ || [4] docker | Docker overview | 01_docker_overview.md | chunk_00000 | https://docs.docker.com/get-started/docker-overview/,docker,,,,,,,,,
+I01,integrated,integrada,¿Cómo se crea una operación GET básica en FastAPI y cuáles son los pasos principales para empaquetar y ejecutar esa aplicación en Docker?,"Se crea una instancia de FastAPI y se define la operación con un decorador como @app.get(""/"") asociado a una función. Para contenerizarla, se prepara un Dockerfile con una imagen base, directorio de trabajo, copia e instalación de dependencias, copia del código y comando de inicio; después se construye la imagen y se ejecuta un contenedor publicando el puerto necesario.",07_fastapi_first_steps.md;12_fastapi_docker.md;02_dockerfile.md,"Crear una operación GET básica en FastAPI y empaquetar la aplicación en Docker son pasos importantes para la implementación de una API. Vamos a dividir este proceso en dos partes: la creación de la API con FastAPI y el empaquetado de la aplicación en Docker.
+
+### Creación de una operación GET básica en FastAPI
+
+1. **Instalar FastAPI y Uvicorn**:
+   Antes de comenzar, asegúrate de tener instalados FastAPI y Uvicorn. Puedes instalarlos con pip:
+   ```bash
+   pip install fastapi uvicorn
+   ```
+
+2. **Crear el archivo de configuración de FastAPI**:
+   Crearás un archivo de configuración de FastAPI que definirá la ruta de tu API. Por ejemplo, `main.py`:
+   ```python
+   from fastapi import FastAPI
+
+   app = FastAPI()
+
+   @app.get(""/"")
+   def read_root():
+       return {""message"": ""Hello, World!""}
+   ```
+
+   En este ejemplo, la ruta raíz (`/`) responderá con un mensaje de bienvenida.
+
+3. **Ejecutar la aplicación**:
+   Para ejecutar tu aplicación, usa Uvicorn:
+   ```bash
+   uvicorn main:app --reload
+   ```
+   El parámetro `--reload` es útil para depuración, ya que reinicia la aplicación automáticamente cuando se modifican los archivos.
+
+### Empaquetar la aplicación en Docker
+
+1. **Crear un archivo `Dockerfile`**:
+   Este archivo define cómo construir la imagen Docker. Por ejemplo:
+   ```Dockerfile
+   FROM python:3.8-slim
+
+   WORKDIR /app
+
+   COPY requirements.txt requirements.txt
+   RUN pip install --no-cache-dir -r requirements.txt
+
+   COPY . .
+
+   CMD [""uvicorn"", ""main:app"", ""--host"", ""0.0.0.0"", ""--port"", ""8000""]
+   ```
+
+   Aquí, `requirements.txt` es un archivo que contiene las dependencias de tu aplicación. Si tu aplicación no tiene dependencias, puedes omitir este paso.
+
+2. **Crear un archivo `requirements.txt`**:
+   Si tu aplicación tiene dependencias, crea un archivo `requirements.txt` con las dependencias de tu aplicación. Por ejemplo:
+   ```plaintext
+   fastapi
+   uvicorn
+   ```
+
+3. **Construir la imagen Docker**:
+   Una vez que tienes tu `Dockerfile` y `requirements.txt`, puedes construir la imagen Docker:
+   ```bash
+   docker build -t my-fastapi-app .
+   ```
+
+4. **Ejecutar la aplicación en un contenedor Docker**:
+   Finalmente, puedes ejecutar la aplicación en un contenedor Docker:
+   ```bash
+   docker run -p 8000:8000 my-fastapi-app
+   ```
+
+   Esto te permitirá acceder a tu API en `http://localhost:8000`.
+
+### Consideraciones adicionales
+
+- **Seguridad**: Asegúrate de que tu `Dockerfile` no incluya dependencias que no necesites en el contenedor final.
+- **Seguridad de la aplicación**: Considera la seguridad de tu aplicación, como el uso de autenticación y autorización.
+- **Optimización**: Puedes optimizar el despliegue de tu aplicación en Docker, por ejemplo, utilizando un archivo `docker-compose.yml` para definir múltiples servicios y configuraciones.
+
+Con estos pasos, deberías tener una aplicación FastAPI básica y una imagen Docker que la ejecuta.","Para crear una operación GET básica en FastAPI, se utiliza el decorador `@app.get(""/"")` que se coloca encima de la función que manejará las solicitudes HTTP GET a la ruta `/`. En el ejemplo proporcionado, la función `root` manejará solicitudes HTTP GET a la ruta `/` y devolverá un objeto JSON con el mensaje ""Hello World"".
+
+### Pasos principales para empaquetar y ejecutar esa aplicación en Docker:
+
+1. **Crear la aplicación FastAPI**: Copiar el código de ejemplo en un archivo `main.py` y asegurarse de que la aplicación esté configurada correctamente.
+
+2. **Crear una imagen Docker**: Usar el archivo `Dockerfile` para definir la imagen Docker. Por ejemplo:
+
+```Dockerfile
+# Dockerfile
+FROM python:3.8-slim
+
+WORKDIR /app
+
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+
+COPY . .
+
+CMD [""uvicorn"", ""main:app"", ""--host"", ""0.0.0.0"", ""--port"", ""8000""]
+```
+
+Este `Dockerfile` compila las dependencias de Python, copia el código de la aplicación y configura el comando para ejecutar la aplicación con Uvicorn.
+
+3. **Crear la imagen Docker**: En el directorio de tu proyecto, ejecutar:
+
+```bash
+docker build -t my-fastapi-app .
+```
+
+4. **Ejecutar la aplicación en un contenedor Docker**: Ejecutar el contenedor con:
+
+```bash
+docker run -p 8000:8000 my-fastapi-app
+```
+
+Estos pasos permiten crear una imagen Docker que contiene tu aplicación FastAPI y la ejecuta en un contenedor, lo que facilita su despliegue y mantenimiento.",[1] fastapi | FastAPI in Containers - Docker | 12_fastapi_docker.md | chunk_00258 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00157 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [3] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00177 | https://fastapi.tiangolo.com/tutorial/first-steps/ || [4] fastapi | FastAPI First Steps | 07_fastapi_first_steps.md | chunk_00174 | https://fastapi.tiangolo.com/tutorial/first-steps/,fastapi,,,,,,,,,

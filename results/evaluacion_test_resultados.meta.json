@@ -1,0 +1,32 @@
+{
+  "started_at_utc": "2026-11-25T23:35:51+00:00",
+  "split": "test",
+  "questions": 15,
+  "question_bank": "preguntas_evaluacion_v2.csv",
+  "question_bank_sha256": "fd3229f33233afe8",
+  "git": {
+    "commit": "2c30569",
+    "branch": "corpus-eval-v2",
+    "uncommitted_changes": false
+  },
+  "llm": {
+    "model": "qwen2.5:3b",
+    "digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b",
+    "temperature": 0
+  },
+  "embedding_model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "collection": "docker_fastapi_docs_v2",
+  "corpus_manifest_sha256": "1442b2ae10cbaf96",
+  "prompts_sha256": "ec8273d81fb653f6",
+  "retrieval": {
+    "retrieval_k": 8,
+    "integrated_k_per_domain": 5,
+    "query_expansion": true,
+    "search_k": 10,
+    "rrf_constant": 60,
+    "rrf_original_weight": 1.0,
+    "rrf_expanded_weight": 0.75,
+    "hybrid_search": true,
+    "bm25_weight": 1.5
+  }
+}

@@ -1,0 +1,656 @@
+﻿id,split,domain,category,question,expected_answer,expected_sources,detected_domains,answer_base,answer_rag,retrieved_sources,retrieved_domains,retrieval_relevant,accuracy_base,accuracy_rag,grounded_base,grounded_rag,hallucination_base,hallucination_rag,notes,execution_error
+F02,test,fastapi,directa,¿Cómo distingue FastAPI los parámetros de consulta y cómo se hace que uno sea opcional u obligatorio?,"Los parámetros de la función que no forman parte de la ruta se interpretan automáticamente como parámetros de consulta. Con un valor por defecto (por ejemplo skip: int = 0, limit: int = 10) son opcionales y toman ese valor si no se envían; con valor por defecto None (q: str | None = None) son opcionales; si no se declara valor por defecto (como needy: str) el parámetro es obligatorio.",fastapi_query_params.md,fastapi,"FastAPI distingue entre parámetros de consulta y de forma diferente, pero para manejar parámetros de consulta, se utiliza la sintaxis de rutas. Los parámetros de consulta se definen en la ruta de la función de manejo de solicitud. Aquí te muestro cómo hacer que un parámetro de consulta sea opcional o obligatorio:
+
+1. **Parámetros de consulta obligatorios**: Si deseas que un parámetro de consulta sea obligatorio, simplemente no lo incluyes en la definición de la ruta. FastAPI entenderá que es un parámetro de consulta y lo incluirá en la URL.
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/items/"")
+async def read_items(q: str = None):
+    return {""q"": q}
+```
+
+En este ejemplo, `q` es un parámetro de consulta que es opcional. Si no se proporciona, `q` será `None`.
+
+2. **Parámetros de consulta opcionales**: Si deseas que un parámetro de consulta sea opcional, simplemente no incluyes el parámetro en la definición de la ruta. FastAPI entenderá que es un parámetro de consulta y lo incluirá en la URL.
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/items/"")
+async def read_items(q: str = None):
+    return {""q"": q}
+```
+
+En este caso de ejemplo, `q` es un parámetro de consulta que es opcional. Si no se proporciona, `q` será `None`.
+
+3. **Parámetros de consulta con valores por defecto**: Si deseas que un parámetro de consulta tenga un valor por defecto, puedes incluirlo en la definición de la ruta con un valor por defecto.
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/items/"")
+async def read_items(q: str = None):
+    return {""q"": q}
+```
+
+En este ejemplo, `q` es un parámetro de consulta que tiene un valor por defecto de `None`. Si no se proporciona, `q` será `None`.
+
+4. **Parámetros de consulta con valores por defecto y obligatorios**: Si deseas que un parámetro de consulta sea obligatorio y tenga un valor por defecto, puedes usar una combinación de `= None` y `= ...` (donde `...` es un valor por defecto).
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(""/items/"")
+async def read_items(q: str = None):
+    return {""q"": q}
+```
+
+En este ejemplo, `q` es un parámetro de consulta que es obligatorio y tiene un valor por defecto de `None`.
+
+Es importante notar que FastAPI no distingue entre parámetros de consulta y de forma. Todos los parámetros en una función de manejo de solicitud son tratados de la misma manera. La distinción entre parámetros de consulta y de forma se hace en la definición de la ruta, donde se especifica el tipo de parámetro que se espera.
+
+Si necesitas manejar parámetros de forma, FastAPI te permite definir rutas con diferentes tipos de parámetros, como `int`, `str`, `list`, etc., dependiendo de la forma en que se envíen los datos.","FastAPI distingue los parámetros de consulta basándose en su ubicación en la URL. Si un parámetro está después de la barra `/` y antes de la parte de la URL que corresponde a los datos de la petición, se considera un parámetro de consulta. Para hacer que un parámetro sea opcional, se establece su valor por defecto como `None`. Para hacer que un parámetro sea obligatorio, no se declara ningún valor por defecto. [3]",[1] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00031 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [2] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00164 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [3] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00028 | https://fastapi.tiangolo.com/tutorial/query-params/ || [4] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00024 | https://fastapi.tiangolo.com/tutorial/query-params/ || [5] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00021 | https://fastapi.tiangolo.com/tutorial/query-params/ || [6] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00190 | https://fastapi.tiangolo.com/fastapi-cli/ || [7] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00192 | https://fastapi.tiangolo.com/fastapi-cli/ || [8] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00188 | https://fastapi.tiangolo.com/fastapi-cli/,fastapi,,,,,,,,,
+F04,test,fastapi,aplicada,¿Cómo se limita a 50 caracteres la longitud de un parámetro de consulta opcional q en FastAPI?,"Se usa Annotated junto con Query: q: Annotated[str | None, Query(max_length=50)] = None. Query admite otras validaciones como min_length y pattern (expresión regular).",fastapi_query_validations.md,fastapi,"En FastAPI, si un parámetro de consulta está definido como opcional y tiene una longitud máxima de caracteres, FastAPI no tiene una configuración específica para limitar la longitud de un parámetro de consulta en sí. La longitud máxima de un parámetro de consulta en FastAPI se limita a la longitud máxima permitida por el navegador o la URL, que generalmente no tiene un límite fijo pero puede ser afectado por la configuración de la URL.
+
+Para limitar la longitud de un parámetro de consulta, puedes usar una combinación de validación en tu modelo de datos y manejo de errores en tu vista. Aquí hay un ejemplo de cómo podrías hacerlo:
+
+```python
+from fastapi import FastAPI, Query
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    description: str = None
+    price: float
+    tax: float = None
+
+@app.get(""/items/"")
+async def read_items(q: str = Query(None, min_length=3, max_length=50)):
+    results = {""items"": [{""item_id"": ""Foo"": q, ""price"": 35.42}]}
+    if q:
+        results.update({""q"": q})
+    return results
+```
+
+En este ejemplo, `max_length=50` limita la longitud del parámetro de consulta `q` a 50 caracteres. Si intentas pasar más de 50 caracteres, FastAPI lanzará un error 422 (Unprocessable Entity) con un mensaje de error que indica que la longitud del parámetro de consulta excede el límite permitido.
+
+Es importante notar que FastAPI no tiene una configuración específica para limitar la longitud de un parámetro de consulta, pero puedes controlar esto a través de la validación de datos y manejo de errores en tu aplicación.",La longitud de un parámetro de consulta opcional `q` en FastAPI se limita a 50 caracteres [1].,[1] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00037 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [2] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00050 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [3] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00041 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [4] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00047 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [5] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00033 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [6] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00039 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [7] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00038 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [8] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00048 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/,fastapi,,,,,,,,,
+F06,test,fastapi,aplicada,¿Cómo se devuelve un error 404 en FastAPI cuando el elemento solicitado no existe?,"Se lanza una excepción HTTPException con el código y el detalle, por ejemplo raise HTTPException(status_code=404, detail='Item not found'). Como es una excepción de Python, no se devuelve con return: se lanza con raise.",fastapi_handling_errors.md,fastapi,"En FastAPI, puedes manejar errores 404 utilizando la decoración `@app.exception_handler(404)`. Esto te permite definir cómo FastAPI debe responder cuando una solicitud no encuentra el recurso solicitado. Aquí tienes un ejemplo de cómo hacerlo:
+
+```python
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+@app.exception_handler(404)
+async def not_found_handler(request, exc):
+    return JSONResponse(status_code=404, content={""message"": ""El recurso solicitado no existe""})
+```
+
+En este ejemplo, cuando una solicitud intenta acceder a una ruta que no existe, FastAPI responderá con un código de estado 404 y un mensaje de error que dice ""El recurso solicitado no existe"".
+
+Si estás utilizando rutas como `GET /ruta`, FastAPI automáticamente manejará la excepción 404. Si estás utilizando rutas personalizadas, como `GET /ruta/{id}`, debes asegurarte de manejar la excepción 404 en la función de la ruta correspondiente.
+
+Además, si estás utilizando rutas personalizadas, puedes manejar la excepción 404 en la función de la ruta de la siguiente manera:
+
+```python
+from fastapi import APIRouter, HTTPException
+
+router = APIRouter()
+
+@router.get(""/ruta/{id}"")
+async def get_item(id: int):
+    # Aquí puedes agregar la lógica para buscar el item con el id proporcionado
+    # Si no existe el item, puedes lanzar una excepción 404
+    if not item_exists(id):
+        raise HTTPException(status_code=404, detail=""El recurso solicitado no existe"")
+    
+    # Aquí puedes continuar con tu lógica de servicio
+    return item
+```
+
+En este caso ""item_exists"" es una función que verifica si el item con el ID proporcionado existe. Si no existe, se lanza una excepción 404.
+
+Recuerda que FastAPI no maneja automáticamente las excepciones 404 en rutas personalizadas. Es importante que manejes estas excepciones en la función de la ruta correspondiente para que FastAPI pueda responder correctamente a las solicitudes que no encuentran el recurso solicitado.","En FastAPI, cuando el elemento solicitado no existe, se devuelve un error 404 con la siguiente respuesta:
+
+```python
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+
+items = {""foo"": ""The Foo Wrestlers""}
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: str):
+    if item_id not in items:
+        raise HTTPException(status_code=404, detail=""Item not found"")
+    return {""item"": items[item_id]}
+```
+
+[4]",[1] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00145 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [2] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00143 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [3] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00153 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [4] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00141 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [5] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00147 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [6] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00142 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [7] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00146 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [8] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00102 | https://fastapi.tiangolo.com/tutorial/response-model/,fastapi,,,,,,,,,
+F08,test,fastapi,directa,¿Qué diferencias hay entre ejecutar una aplicación con fastapi dev y con fastapi run?,"fastapi dev es para desarrollo: tiene la recarga automática activada y escucha en 127.0.0.1, la dirección para que la máquina se comunique solo consigo misma. fastapi run inicia FastAPI en modo producción: la recarga automática está desactivada y escucha en 0.0.0.0.",fastapi_cli.md,fastapi,"Ambas funciones `fastapi dev` y `fastapi run` son utilizadas para iniciar una aplicación FastAPI, pero tienen algunas diferencias importantes:
+
+1. `fastapi run`:
+   - Esta es la forma más simple de ejecutar una aplicación FastAPI.
+   - Se usa cuando tienes una aplicación FastAPI completa, con una clase `main` que define la aplicación y las rutas.
+   - Por ejemplo: `fastapi run main:app` donde `main` es el nombre de la clase que contiene la aplicación y `app` es el nombre de la variable de la clase que contiene las rutas.
+   - No requiere configuración adicional para el servidor de desarrollo, ya que FastAPI proporciona un servidor de desarrollo integrado.
+
+2. `fastapi dev`:
+   - Esta es una herramienta de línea de comandos que proporciona un servidor de desarrollo integrado para FastAPI.
+   - Es útil cuando estás trabajando en una aplicación FastAPI y necesitas una forma rápida de ver cómo se comporta tu aplicación en tiempo real.
+   - No requiere que tu aplicación esté en una clase `main`, sino que puedes ejecutar cualquier función que inicialice tu aplicación.
+   - `fastapi dev` también proporciona características adicionales como rastreo de errores, depuración y un servidor de desarrollo más robusto.
+
+En resumen, `fastapi run` es más simple y directo, mientras que `fastapi dev` ofrece características adicionales y un entorno de desarrollo más completo. Dependiendo de tus necesidades, puedes preferir una o la otra.","La diferencia principal entre ejecutar una aplicación con `fastapi dev` y con `fastapi run` radica en el modo de ejecución y las configuraciones que se utilizan.
+
+[1] En `fastapi dev`, se habilita el modo de desarrollo, que incluye la opción de recompilar automáticamente el servidor cuando se hacen cambios en el código. Además, se asume que el objeto de la aplicación se llama `app` en un archivo `main.py` (o variantes similares).
+
+[2] En `fastapi run`, se puede especificar explícitamente el objeto de la aplicación a usar, lo que permite una mayor flexibilidad y control sobre cómo se ejecuta la aplicación. Por ejemplo, se puede usar el parámetro `--entrypoint` para especificar el punto de entrada de la aplicación.
+
+[3] `fastapi dev` inicia el servidor en modo de desarrollo, con `auto-reload` activado por defecto. En cambio, `fastapi run` permite configurar explícitamente el objeto de la aplicación y puede ser utilizado para ejecutar la aplicación en modo de producción si es necesario.
+
+[4] `fastapi dev` asume que el objeto de la aplicación se llama `app` en `main.py`, mientras que `fastapi run` permite especificar cualquier objeto de la aplicación que se desee usar.
+
+[5] `fastapi dev` establece automáticamente la variable de entorno `FASTAPI_ENV` en `development`, mientras que `fastapi run` deja que `FASTAPI_ENV` tome su valor existente si ya está definido.
+
+[6] `fastapi dev` no establece `FASTAPI_ENV` explícitamente, por lo que si la aplicación necesita detectar el modo de producción, debe establecer `FASTAPI_ENV` explícitamente.
+
+[7] `fastapi run` admite la opción `--port` para especificar el puerto en el que se ejecutará la aplicación, mientras que `fastapi dev` asume que el servidor escuchará en `127.0.0.1:80` por defecto.
+
+[8] `fastapi run` admite la opción `--proxy-headers` para configurar el encabezado de proxy si se está ejecutando detrás de un proxy como Nginx o Traefik.",[1] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00188 | https://fastapi.tiangolo.com/fastapi-cli/ || [2] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00194 | https://fastapi.tiangolo.com/fastapi-cli/ || [3] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00196 | https://fastapi.tiangolo.com/fastapi-cli/ || [4] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00197 | https://fastapi.tiangolo.com/fastapi-cli/ || [5] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00234 | https://fastapi.tiangolo.com/deployment/docker/ || [6] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00207 | https://fastapi.tiangolo.com/advanced/settings/ || [7] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00198 | https://fastapi.tiangolo.com/fastapi-cli/ || [8] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/,fastapi,,,,,,,,,
+D02,test,docker,directa,"¿Qué hacen las instrucciones FROM, WORKDIR, COPY, RUN y CMD de un Dockerfile?",FROM elige la imagen base sobre la que se construye. WORKDIR fija el directorio de trabajo dentro de la imagen para las instrucciones siguientes y lo crea si no existe. COPY copia archivos del proyecto a la imagen. RUN ejecuta un comando durante la construcción y sus resultados se guardan en la imagen. CMD define el comando por defecto que ejecuta un contenedor al arrancar desde la imagen.,docker_write_dockerfile.md,docker,"Un Dockerfile es un archivo de configuración que se utiliza para crear imágenes Docker. Cada línea en un Dockerfile ejecuta una instrucción que define una característica de la imagen. Las instrucciones que mencionas son algunas de las más comunes y cada una tiene un propósito específico:
+
+1. **FROM**: Esta instrucción define la base de la imagen. Es decir, indica qué imagen base se va a usar como punto de partida para crear la imagen final. Por ejemplo:
+   ```dockerfile
+   FROM python:3.8
+   ```
+
+2. **WORKDIR**: Esta instrucción establece el directorio de trabajo para las siguientes instrucciones en el Dockerfile. Es útil para definir dónde se ejecutarán los comandos dentro de la imagen. Por ejemplo:
+   ```dockerfile
+   WORKDIR /app
+   ```
+
+3. **COPY**: Esta instrucción copia archivos desde el directorio local hasta el directorio de trabajo de la imagen. Es útil para copiar archivos de entrada o configuración. Por ejemplo:
+   ```dockerfile
+   COPY . /app
+   ```
+
+4. **RUN**: Esta instrucción ejecuta un comando en el contenedor de Docker después de que se ha creado la imagen. Puede ser usado para instalar paquetes, ejecutar scripts, etc. Por ejemplo:
+   ```dockerfile
+   RUN pip install --trusted-host pypi.python.org -r requirements.txt
+   ```
+
+5. **CMD**: Esta instrucción define los comandos que se ejecutarán cuando se inicie el contenedor. Puede ser usado para definir los argumentos de un script o la configuración inicial de un servidor web. Por ejemplo:
+   ```dockerfile
+   CMD [""python"", ""app.py""]
+   ```
+
+Estas instrucciones son fundamentales para crear imágenes Docker que puedan ser utilizadas para construir contenedores. Cada una de ellas tiene un propósito específico que contribuye a la configuración de la imagen Docker de manera eficiente y precisa.","Las instrucciones de un Dockerfile son:
+
+- `FROM`: Selecciona la imagen base en la que se construirá el contenedor. [1]
+
+- `WORKDIR`: Establece la carpeta dentro de la imagen donde las instrucciones siguientes se aplicarán. [1]
+
+- `COPY`: Copia archivos desde el proyecto al contenedor. [1]
+
+- `RUN`: Ejecuta una instrucción durante la construcción de la imagen, como la instalación de paquetes. [1]
+
+- `CMD`: Establece el comando por defecto que se ejecutará cuando se inicie el contenedor. [1]",[1] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00308 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [2] docker | Image layers and the build cache | docker_build_cache.md | chunk_00335 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [3] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00307 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [4] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00327 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [5] docker | Image layers and the build cache | docker_build_cache.md | chunk_00358 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [6] docker | Image layers and the build cache | docker_build_cache.md | chunk_00334 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [7] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00314 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [8] docker | Image layers and the build cache | docker_build_cache.md | chunk_00341 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/,docker,,,,,,,,,
+D04,test,docker,directa,"¿En qué se diferencian los volúmenes, los bind mounts y los montajes tmpfs en Docker?",Los datos escritos en la capa del contenedor no persisten cuando este se destruye. Los volúmenes son almacenamiento persistente gestionado por el daemon de Docker. Los bind mounts enlazan directamente una ruta del sistema anfitrión con el contenedor. Los montajes tmpfs guardan los archivos en la memoria del anfitrión y no se escriben en disco.,docker_storage.md,docker,"Los volúmenes, los bind mounts y los montajes tmpfs son diferentes maneras de compartir archivos entre un contenedor y el sistema host de Docker. Vamos a explicar cada uno de ellos:
+
+1. **Volúmenes (Volumes)**:
+   - Los volúmenes son archivos de datos que se mantienen fuera del sistema de archivos del contenedor. Estos archivos se mantienen en el sistema de archivos del host.
+   - Los volúmenes son persistentes, lo que significa que continúan existiendo incluso después de que el contenedor se cierre.
+   - Los volúmenes se crean con la opción `-v` o `--volume` al crear un contenedor o al usar `docker volume create`.
+   - Ejemplo de uso: `docker run -v /ruta/local/host:/ruta/dentro/contenedor app:version`
+
+2. **Bind Mounts (Montajes de Bind)**:
+   - Los bind mounts son una forma de compartir archivos directamente desde el sistema de archivos del host al contenedor. Estos archivos se mantienen en el sistema de archivos del host.
+   - Los bind mounts se crean con la opción `-v` o `--volume` al crear un contenedor, pero en lugar de especificar una ruta de host, se especifica una ruta de host y una ruta dentro del contenedor.
+   - Ejemplo de uso: `docker run -v /ruta/local/host:/ruta/dentro/contenedor app:version`
+
+3. **Montajes tmpfs (Temporary Filesystems)**:
+   - Los montajes tmpfs son temporales y se crean en memoria. No se guardan en el sistema de archivos del host.
+   - Los montajes tmpfs se crean con la opción `-v` o `--volume` al crear un contenedor, pero en lugar de especificar una ruta de host, se especifica una ruta de memoria.
+   - Ejemplo de uso: `docker run -v /ruta/local/host:/ruta/dentro/contenedor app:version`
+
+En resumen:
+- **Volúmenes**: Son archivos persistentes en el sistema de archivos del host.
+- **Bind Mounts**: Son archivos en el sistema de archivos del host que se mueven al contenedor.
+- **Montajes tmpfs**: Son archivos en memoria que se mueven al contenedor.
+
+Cada uno tiene sus propias ventajas y desventajas, por lo que la elección depende del uso específico del contenedor.","Los volúmenes, los bind mounts y los montajes tmpfs en Docker se diferencian en cómo se maneja el acceso a los datos y quién los administra. Los volúmenes son una forma de almacenar datos fuera de la capa de escritura de contenedor, y los datos persisten independientemente de la vida del ciclo del contenedor. Los bind mounts crean una ligazón directa entre un directorio del sistema de host y un contenedor, permitiendo el acceso a archivos o directorios almacenados en cualquier parte del sistema de host. Los montajes tmpfs, por otro lado, almacenan los datos directamente en la memoria del sistema de host, lo que los hace inestables y únicos para la sesión del contenedor. Los datos no se escriben en disco y se pierden cuando el contenedor se detiene, se reinicia o cuando reinicia el sistema de host. [2] [3] [1]",[1] docker | Docker storage | docker_storage.md | chunk_00403 | https://docs.docker.com/engine/storage/ || [2] docker | Docker storage | docker_storage.md | chunk_00400 | https://docs.docker.com/engine/storage/ || [3] docker | Docker storage | docker_storage.md | chunk_00402 | https://docs.docker.com/engine/storage/ || [4] docker | Define and manage volumes in Docker Compose | compose_volumes.md | chunk_00570 | https://docs.docker.com/reference/compose-file/volumes/ || [5] docker | Docker storage | docker_storage.md | chunk_00406 | https://docs.docker.com/engine/storage/ || [6] docker | Keep data with volumes and bind mounts | docker_persisting_data.md | chunk_00391 | https://docs.docker.com/learn/content/keep-data-with-volumes-and-bind-mounts/ || [7] docker | Docker storage | docker_storage.md | chunk_00397 | https://docs.docker.com/engine/storage/ || [8] docker | Image layers and the build cache | docker_build_cache.md | chunk_00349 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/,docker,,,,,,,,,
+D06,test,docker,aplicada,¿Cuándo vuelve Docker a ejecutar un paso de construcción en lugar de usar la caché y cómo conviene ordenar el Dockerfile para aprovecharla?,"Un paso se vuelve a ejecutar cuando cambia el propio paso o sus entradas: en RUN, el texto del comando; en COPY, el contenido de los archivos copiados. Cuando un paso se vuelve a ejecutar, también se ejecutan todos los posteriores. Por eso conviene copiar primero solo los archivos de dependencias, instalarlas, y copiar el resto del código después, para que un cambio en el código no repita la instalación.",docker_build_cache.md,docker,"Docker utiliza una caché para evitar recompilar los pasos de construcción si no es necesario. Esto significa que si los archivos de entrada no han cambiado desde la última compilación, Docker no volverá a ejecutar el paso de construcción. La caché de Docker se basa en la comparación de los hashes de los archivos de entrada y de los archivos de salida. Si los hashes son iguales, Docker no volverá a ejecutar el paso de construcción.
+
+Para aprovechar la caché de Docker de manera óptima, es importante organizar el Dockerfile de la siguiente manera:
+
+1. **Incluir dependencias en una sola línea**: Siempre que sea posible, agrupa las dependencias en una sola línea de `RUN` para evitar que Docker cree múltiples pasos de construcción.
+
+2. **Usar `COPY` en lugar de `ADD`**: `COPY` es más eficiente y directo para copiar archivos desde el directorio de trabajo local al contenedor.
+
+3. **Usar `ADD` para archivos de configuración**: Si los archivos de configuración no cambian, puedes usar `ADD` para incluirlos en el contenedor sin necesidad de copiarlos.
+
+4. **Usar `RUN` para ejecutar scripts**: Si necesitas ejecutar un script para configurar el entorno, usa `RUN` para asegurar que se ejecute en cada paso de construcción.
+
+5. **Usar `COPY` para archivos de entrada**: Si los archivos de entrada no cambian, usa `COPY` para incluirlos en el contenedor.
+
+Aquí tienes un ejemplo de cómo podría verse un Dockerfile optimizado:
+
+```dockerfile
+# Paso de construcción 1: Instalar dependencias
+FROM python:3.8-slim AS base
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Paso de construcción 2: Copiar código fuente
+FROM base AS app
+COPY . /app
+WORKDIR /app
+
+# Paso de construcción 3: Configurar el entorno
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Paso de construcción 4: Copiar archivos de configuración
+FROM app AS config
+COPY config.ini /app/config.ini
+
+# Paso de construcción 5: Ejecutar el servidor
+FROM config AS serve
+ENV PORT=8000
+EXPOSE 8000
+CMD [""python"", ""app.py""]
+```
+
+En este ejemplo, cada paso de construcción (base, app, config, serve) se asegura de que los archivos de entrada no cambien, lo que permite que Docker use la caché de manera eficiente.
+
+Recuerda que la optimización de la caché de Docker puede variar dependiendo del entorno y las dependencias específicas de tu proyecto. Es importante probar y verificar la eficacia de la caché en tu caso particular.","Docker vuelve a ejecutar un paso de construcción en lugar de usar la caché cuando los cambios en el Dockerfile son significativos y no se pueden predecir con certeza si la caché será útil [3]. Para aprovechar la caché, conviene ordenar el Dockerfile de la siguiente manera: primero, el base image y las herramientas necesarias para el sistema, luego los manifestos de dependencias como `package.json` y el lockfile, y finalmente el código fuente [5].",[1] docker | Image layers and the build cache | docker_build_cache.md | chunk_00331 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [2] docker | Image layers and the build cache | docker_build_cache.md | chunk_00339 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [3] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00329 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [4] docker | Image layers and the build cache | docker_build_cache.md | chunk_00350 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [5] docker | Image layers and the build cache | docker_build_cache.md | chunk_00366 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [6] docker | Image layers and the build cache | docker_build_cache.md | chunk_00362 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [7] docker | Image layers and the build cache | docker_build_cache.md | chunk_00367 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [8] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00325 | https://docs.docker.com/learn/content/write-your-first-dockerfile/,docker,,,,,,,,,
+D08,test,docker,aplicada,"En Docker Compose, ¿cómo se hace que un servicio no arranque hasta que su base de datos esté lista para aceptar conexiones?","Con depends_on se controla el orden de arranque, pero Compose solo espera a que el contenedor esté en ejecución, no a que esté listo. Para esperar a que esté listo se usa depends_on con condition: service_healthy y se define un healthcheck en el servicio del que se depende.",compose_startup_order.md,docker,"Para asegurar que un servicio en Docker Compose no arranque hasta que su base de datos esté lista para aceptar conexiones, puedes utilizar la opción `depends_on` en tu archivo `docker-compose.yml`. Esto asegura que el servicio dependiente inicie solo después de que el servicio dependiente sea completamente inicializado.
+
+Aquí tienes un ejemplo de cómo hacerlo:
+
+```yaml
+version: '3'
+services:
+  web:
+    image: my_web_image
+    depends_on:
+      - db
+
+  db:
+    image: my_db_image
+    environment:
+      MYSQL_ROOT_PASSWORD: my_password
+      MYSQL_DATABASE: my_database
+      MYSQL_USER: my_user
+      MYSQL_PASSWORD: my_password
+```
+
+En este ejemplo, el servicio `web` depende del servicio `db`. Esto significa que `web` no iniciará hasta que `db` esté completamente inicializado.
+
+Si tu base de datos es MySQL, puedes configurar las variables de entorno necesarias para que MySQL inicie correctamente. En el ejemplo anterior, se han configurado las variables `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, y `MYSQL_PASSWORD`.
+
+Si tu base de datos es diferente, asegúrate de configurar las variables de entorno adecuadas para que el servicio de base de datos inicie correctamente.
+
+Además, si tu base de datos es un servicio que requiere tiempo para inicializarse (como MySQL), puedes agregar una espera en la configuración de `depends_on` para que el servicio principal espere un tiempo específico antes de iniciar. Esto se hace con la opción `timeout`:
+
+```yaml
+version: '3'
+services:
+  web:
+    image: my_web_image
+    depends_on:
+      - db
+    environment:
+      MYSQL_ROOT_PASSWORD: my_password
+      MYSQL_DATABASE: my_database
+      MYSQL_USER: my_user
+      MYSQL_PASSWORD: my_password
+  db:
+    image: my_db_image
+    environment:
+      MYSQL_ROOT_PASSWORD: my_password
+      MYSQL_DATABASE: my_database
+      MYSQL_USER: my_user
+      MYSQL_PASSWORD: my_password
+    depends_on:
+      - web
+    environment:
+      MYSQL_ROOT_PASSWORD: my_password
+      MYSQL_DATABASE: my_database
+      MYSQL_USER: my_user
+      MYSQL_PASSWORD: my_password
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    healthcheck:
+      test: [""CMD"", ""mysqladmin"", ""ping"", ""-h"", ""localhost""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+```
+
+En este ejemplo, se agrega una configuración de `healthcheck` para que el servicio `web` espere hasta 5 intentos de conexión a la base de datos antes de considerar que el servicio `db` está listo. Esto asegura que el servicio `web` no inicie hasta que la base de datos esté completamente inicializada y funcional.
+
+Recuerda que la configuración de `depends_on` y `healthcheck` puede variar dependiendo del servicio de base de datos que estés utilizando.","En Docker Compose, para que un servicio no arranque hasta que su base de datos esté lista para aceptar conexiones, se utiliza la opción `condition: service_healthy` en la configuración del servicio dependiente. Esto indica que el servicio dependiente debe estar ""saludable"" antes de que el servicio dependiente arranque. [1]",[1] docker | Control startup and shutdown order in Compose | compose_startup_order.md | chunk_00548 | https://docs.docker.com/compose/how-tos/startup-order/ || [2] docker | Control startup and shutdown order in Compose | compose_startup_order.md | chunk_00550 | https://docs.docker.com/compose/how-tos/startup-order/ || [3] docker | Networking in Compose | compose_networking.md | chunk_00522 | https://docs.docker.com/compose/how-tos/networking/ || [4] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00486 | https://docs.docker.com/engine/network/port-publishing/ || [5] docker | Networking in Compose | compose_networking.md | chunk_00521 | https://docs.docker.com/compose/how-tos/networking/ || [6] docker | How Compose works | compose_application_model.md | chunk_00516 | https://docs.docker.com/compose/intro/compose-application-model/ || [7] docker | Networking in Compose | compose_networking.md | chunk_00524 | https://docs.docker.com/compose/how-tos/networking/ || [8] docker | Control startup and shutdown order in Compose | compose_startup_order.md | chunk_00549 | https://docs.docker.com/compose/how-tos/startup-order/,docker,,,,,,,,,
+D09,test,docker,aplicada,¿Cómo se definen variables de entorno para un servicio en un archivo de Docker Compose?,"Con el atributo environment del servicio, indicando las variables directamente (por ejemplo DEBUG: 'true'), o con el atributo env_file, que carga las variables desde un archivo (por ejemplo env_file: 'webapp.env').",compose_env_vars.md,docker,"Para definir variables de entorno en un archivo de Docker Compose, puedes utilizar la sintaxis `environment` dentro de las secciones de servicios. Estas variables se pueden utilizar en los servicios definidos en el archivo de Docker Compose.
+
+Aquí tienes un ejemplo de cómo hacerlo:
+
+```yaml
+version: '3'
+services:
+  web:
+    image: my_web_image
+    environment:
+      - DB_HOST=my_db_host
+      - DB_NAME=my_db_name
+      - DB_USER=my_db_user
+      - DB_PASSWORD=my_db_password
+```
+
+En este ejemplo, `web` es el nombre del servicio, `my_web_image` es la imagen que se utilizará para el servicio, y `environment` es la sección donde se definen las variables de entorno. Las variables `DB_HOST`, `DB_NAME`, `DB_USER`, y `DB_PASSWORD` serán disponibles para el servicio `web`.
+
+Si quieres definir variables de entorno para un servicio específico, puedes hacerlo de la siguiente manera:
+
+```yaml
+version: '3'
+services:
+  web:
+    image: my_web_image
+    environment:
+      - DB_HOST=my_db_host
+      - DB_NAME=my_db_name
+      - DB_USER=my_db_user
+      - DB_PASSWORD=my_db_password
+  db:
+    image: my_db_image
+    environment:
+      - MYSQL_ROOT_PASSWORD=my_root_password
+      - MYSQL_DATABASE=my_db_name
+      - MYSQL_USER=my_db_user
+      - MYSQL_PASSWORD=my_db_password
+```
+
+En este caso web y db son los nombres de los servicios. `web` tiene acceso a las variables definidas en `environment` de `web`, y `db` tiene acceso a las variables definidas en `environment` de `db`.
+
+Es importante tener en cuenta que las variables de entorno definidas en el archivo de Docker Compose se utilizan en el host de Docker, no en el servicio. Si necesitas que un servicio tenga acceso a variables de entorno que no estén definidas en el archivo de Docker Compose, puedes usar variables de entorno de Docker host o variables de entorno de Docker Compose.
+
+Además, si estás utilizando variables de entorno en un archivo de Docker Compose, asegúrate de que estas variables estén disponibles en el host de Docker. Esto puede implicar que debas definir estas variables en el archivo `docker-compose.yml` o en el archivo de variables de entorno del sistema operativo del host de Docker.","Se definen variables de entorno para un servicio en un archivo de Docker Compose utilizando el atributo `environment` en la sección del servicio correspondiente. Este atributo puede ser utilizado con sintaxis de lista o de diccionario. Además, se pueden utilizar archivos `.env` para definir variables de entorno. También se pueden utilizar archivos de configuración para sobrescribir valores de variables de entorno. [3] [4] [5] [6] [7] [8]",[1] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00552 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [2] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00561 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [3] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00553 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [4] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00560 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [5] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00556 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [6] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00555 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [7] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00559 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [8] docker | Define and manage volumes in Docker Compose | compose_volumes.md | chunk_00562 | https://docs.docker.com/reference/compose-file/volumes/,docker,,,,,,,,,
+I02,test,integrated,integrada,¿Por qué la guía de FastAPI para Docker copia requirements.txt e instala las dependencias antes de copiar el código de la aplicación?,"Para aprovechar la caché de construcción de Docker. Un paso solo se vuelve a ejecutar si cambian el paso o sus archivos de entrada, y al ejecutarse se repiten todos los posteriores. Como requirements.txt cambia poco y el código cambia a menudo, copiar primero solo las dependencias evita reinstalarlas cada vez que se modifica el código.",fastapi_docker.md;docker_build_cache.md,fastapi,"La guía de FastAPI para Docker copia requirements.txt e instala las dependencias antes de copiar el código de la aplicación por varias razones importantes:
+
+1. **Seguridad**: Instalar las dependencias antes de copiar el código asegura que todas las dependencias necesarias estén disponibles en el entorno de Docker. Esto evita problemas de dependencias no resueltas que podrían surgir si las dependencias no estuvieran instaladas cuando se copia el código.
+
+2. **Eficiencia**: Instalar las dependencias antes de copiar el código puede ser más eficiente. Si las dependencias no están instaladas, se instalarán en el entorno de Docker, lo que puede tardar más tiempo. Al instalar las dependencias antes, se garantiza que el entorno de Docker esté listo para ejecutar la aplicación.
+
+3. **Control de dependencias**: Al instalar las dependencias antes de copiar el código, puedes controlar qué dependencias se instalan y qué no. Por ejemplo, si no necesitas ciertas dependencias para tu aplicación, puedes evitar su instalación, lo que puede reducir el tamaño del contenedor y mejorar su eficiencia.
+
+4. **Consistencia**: Al instalar las dependencias antes de copiar el código, puedes asegurar que todas las instancias del contenedor tengan las mismas dependencias. Esto es especialmente importante si estás utilizando Docker para crear múltiples instancias de tu aplicación.
+
+5. **Facilidad de uso**: Para los usuarios que no son expertos en Docker, es más sencillo copiar el código y tener todo listo para ejecutar la aplicación. No tienen que preocuparse por instalar las dependencias, ya que ya se han instalado antes.
+
+En resumen, esta estrategia asegura que el entorno de Docker esté listo y configurado correctamente antes de copiar el código de la aplicación, lo que facilita el desarrollo y la implementación de la aplicación en Docker.","La guía de FastAPI para Docker copia `requirements.txt` e instala las dependencias antes de copiar el código de la aplicación para aprovechar el uso de la **caché**. Esto significa que si un archivo no ha cambiado desde la última vez que se construyó la imagen de contenedor, Docker **reutiliza la misma capa** creada la última vez, en lugar de copiar el archivo de nuevo y crear una nueva capa desde cero. Esto **optimiza el tiempo de construcción** de la imagen de contenedor y **evita la repetición innecesaria de tareas**. [5]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00259 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00252 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00234 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00253 | https://fastapi.tiangolo.com/deployment/docker/ || [6] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00246 | https://fastapi.tiangolo.com/deployment/docker/ || [7] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00254 | https://fastapi.tiangolo.com/deployment/docker/ || [8] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00244 | https://fastapi.tiangolo.com/deployment/docker/,fastapi,,,,,,,,,
+I04,test,integrated,integrada,"En un proyecto Compose con un servicio para la API FastAPI y otro para una base de datos PostgreSQL, ¿cómo se conecta la API con la base de datos?","Compose crea por defecto una red única para la aplicación y cada contenedor se une a ella y es accesible por el nombre de su servicio. La API se conecta usando el nombre del servicio como host, por ejemplo postgres://db:5432. La comunicación entre servicios usa el puerto del contenedor (CONTAINER_PORT), no el puerto publicado en el host.",compose_networking.md,fastapi;docker,"Para conectar una API FastAPI con una base de datos PostgreSQL en un entorno Docker Compose, es necesario configurar las rutas de conexión entre ambos servicios. Aquí te explico los pasos para lograr esto:
+
+1. **Configurar la base de datos PostgreSQL en Docker Compose:**
+
+   En tu archivo `docker-compose.yml`, asegúrate de tener una configuración como esta:
+
+   ```yaml
+   version: '3'
+   services:
+     db:
+       image: postgres:13
+       environment:
+         POSTGRES_USER: myuser
+         POSTGRES_PASSWORD: mypassword
+         POSTGRES_DB: mydatabase
+       volumes:
+         - db_data:/var/lib/postgresql/data
+       ports:
+         - ""5432:5432""
+     db_data:
+       image: busybox
+       volumes:
+         - db_data:/var/lib/postgresql/data
+   volumes:
+     db_data:
+   ```
+
+   Aquí, `db` es el nombre del servicio de PostgreSQL, `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` son variables de entorno que puedes personalizar según tus necesidades.
+
+2. **Configurar la API FastAPI para conectarse a la base de datos:**
+
+   En tu archivo `main.py` de FastAPI, puedes configurar la conexión a la base de datos PostgreSQL. Aquí te dejo un ejemplo de cómo hacerlo:
+
+   ```python
+   from fastapi import FastAPI
+   from sqlalchemy import create_engine
+   from sqlalchemy.orm import sessionmaker
+   from sqlalchemy.ext.declarative import declarative_base
+
+   DATABASE_URL = ""postgresql://myuser:mypassword@db:5432/mydatabase""
+
+   engine = create_engine(DATABASE_URL)
+   SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+   Base = declarative_base()
+
+   app = FastAPI()
+
+   @app.get(""/"")
+   def read_root():
+       db = SessionLocal()
+       result = db.execute(""SELECT * FROM my_table"").fetchall()
+       return result
+   ```
+
+   En este ejemplo, `DATABASE_URL` es la URL de conexión a la base de datos PostgreSQL. Aquí, `myuser`, `mypassowrd`, `mydatabase` son variables de entorno que puedes configurar en tu archivo `docker-compose.yml`.
+
+3. **Configurar variables de entorno en Docker Compose:**
+
+   En tu archivo `docker-compose.yml`, puedes configurar las variables de entorno para la API FastAPI:
+
+   ```yaml
+   version: '3'
+   services:
+     api:
+       image: your-fastapi-image
+       environment:
+         DATABASE_URL: postgres://myuser:mypassword@db:5432/mydatabase
+       depends_on:
+         - db
+   ```
+
+   Aquí, `api` es el nombre del servicio de FastAPI, `DATABASE_URL` es la variable de entorno que se utiliza en `main.py` para establecer la conexión a la base de datos.
+
+4. **Iniciar el entorno Docker Compose:**
+
+   Para iniciar el entorno Docker Compose, simplemente ejecuta el siguiente comando en tu terminal:
+
+   ```bash
+   docker-compose up
+   ```
+
+   Esto iniciará los servicios de PostgreSQL y FastAPI en un entorno Docker Compose, y las dos aplicaciones estarán conectadas a través de la variable de entorno `DATABASE_URL`.
+
+Recuerda que en un entorno de producción, es importante manejar la seguridad de las credenciales de la base de datos. En un entorno de desarrollo, puedes usar variables de entorno para proteger las credenciales.","En un proyecto Compose con un servicio para la API FastAPI y otro para una base de datos PostgreSQL, la API se conecta con la base de datos a través de una red compartida. Para establecer una conexión entre estos servicios, se utiliza una red definida en el archivo `docker-compose.yml`. En este archivo, se establece una red compartida para que los servicios puedan comunicarse entre sí. Por ejemplo, se puede ver en el fragmento [7] cómo se define una red compartida en el archivo `docker-compose.yml`:
+
+```yaml
+networks:
+  shared:
+    external: true
+    name: inter-project
+```
+
+Con esta configuración, los servicios `api` y `database` pueden comunicarse entre sí a través de la red compartida `shared`.",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00251 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00272 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00282 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI Request Body | fastapi_request_body.md | chunk_00092 | https://fastapi.tiangolo.com/tutorial/body/ || [5] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00184 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [6] docker | Networking in Compose | compose_networking.md | chunk_00534 | https://docs.docker.com/compose/how-tos/networking/ || [7] docker | Networking in Compose | compose_networking.md | chunk_00536 | https://docs.docker.com/compose/how-tos/networking/ || [8] docker | Control startup and shutdown order in Compose | compose_startup_order.md | chunk_00550 | https://docs.docker.com/compose/how-tos/startup-order/ || [9] docker | Define and manage volumes in Docker Compose | compose_volumes.md | chunk_00564 | https://docs.docker.com/reference/compose-file/volumes/ || [10] docker | How Compose works | compose_application_model.md | chunk_00504 | https://docs.docker.com/compose/intro/compose-application-model/,docker;fastapi,,,,,,,,,
+I06,test,integrated,integrada,"Si una API FastAPI guarda archivos subidos y estos deben conservarse al eliminar o recrear el contenedor, ¿qué mecanismo de Docker se debe usar y cómo se declara en Compose?","Hay que usar un volumen: lo que se escribe en la capa del contenedor se pierde al eliminarlo, mientras que un volumen existe de forma independiente de cualquier contenedor. En Compose se declara en el elemento de nivel superior volumes, que define volúmenes con nombre reutilizables por varios servicios, y se monta en el servicio con nombre_volumen:/ruta/en/el/contenedor.",docker_persisting_data.md;compose_volumes.md,fastapi;docker,"Para que los archivos subidos por una API FastAPI se conserven al eliminar o recrear el contenedor, se debe utilizar la opción `volumes` en el archivo de configuración de Docker Compose. Esto permite que los archivos de volumen persistan independientemente de la configuración de Docker Compose o del contenedor.
+
+### Mecanismo de Docker
+
+Docker Compose utiliza la opción `volumes` para crear un volumen en el sistema de archivos local que se vincula al contenedor. Este volumen actúa como una especie de base de datos de archivos que se pueden leer y escribir desde el contenedor. Cuando se utiliza `volumes`, los archivos se conservan incluso después de que el contenedor se elimine o se reinicie.
+
+### Declaramos el volumen en el archivo de configuración de Docker Compose
+
+En tu archivo `docker-compose.yml`, puedes declarar un volumen para que los archivos se conserven. Aquí te muestro un ejemplo de cómo hacerlo:
+
+```yaml
+version: '3'
+services:
+  api:
+    image: your-fastapi-image
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - ""8000:8000""
+    environment:
+      - DATABASE_URL=sqlite:///db.sqlite3
+    command: uvicorn your_app.main:app --host 0.0.0.0 --port 8000
+volumes:
+  uploads:
+```
+
+En este ejemplo, `./uploads:/app/uploads` vincula el volumen `uploads` en el sistema de archivos local (`./uploads`) al directorio `/app/uploads` dentro del contenedor. Esto significa que cualquier archivo subido por la API será guardado en el directorio `./uploads` en el sistema de archivos local.
+
+### Explicación de los componentes
+
+- **image**: Especifica la imagen de Docker que se utilizará para el servicio `api`.
+- **volumes**: Este es el punto clave. `./uploads:/app/uploads` vincula el volumen `uploads` en el sistema de archivos local (`./uploads`) al directorio `/app/uploads` dentro del contenedor. Esto asegura que los archivos subidos por la API se guarden en el sistema de archivos local.
+- **ports**: Configura la puerta de enlace para que el servicio `api` escuche en el puerto `8000` en el host.
+- **environment**: Configura las variables de entorno para la aplicación FastAPI.
+- **command**: Configura el comando que se ejecutará en el contenedor.
+- **volumes**: Este bloque declara el volumen `uploads` que se utilizará para vincular el sistema de archivos local al contenedor.
+
+### Ejecución de Docker Compose
+
+Después de configurar el archivo `docker-compose.yml`, puedes ejecutar Docker Compose para crear y arrancar el contenedor:
+
+```bash
+docker-compose up -d
+```
+
+Este comando arrancará el contenedor en modo de fondo (`-d`).
+
+### Eliminación y Recuperación del Contenedor
+
+Cuando eliminas el contenedor, los archivos en el volumen `uploads` no se eliminarán. Si quieres reiniciar el contenedor, los archivos en `uploads` se conservarán y se volverán a cargar en el contenedor.
+
+### Consideraciones
+
+- **Seguridad**: Asegúrate de que el volumen `uploads` no contenga información sensible que no quieras que se conserve.
+- **Escalabilidad**: Si necesitas múltiples instancias del contenedor, asegúrate de que el volumen `uploads` sea compartido entre todas ellas.
+
+Con estos pasos, los archivos subidos por la API FastAPI se conservarán al eliminar o recrear el contenedor.","Para conservar los archivos subidos por una API FastAPI al eliminar o recrear el contenedor, se debe usar un mecanismo de Docker llamado **volumen**. Los volumenes se declaran en el archivo `docker-compose.yml` utilizando la opción `-v` en la definición de servicios. En este caso, se especifica la ruta dentro del contenedor y la ruta en el sistema de archivos local donde se almacenará el volumen. [10]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00251 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00263 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00272 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00257 | https://fastapi.tiangolo.com/deployment/docker/ || [6] docker | Docker storage | docker_storage.md | chunk_00403 | https://docs.docker.com/engine/storage/ || [7] docker | Docker storage | docker_storage.md | chunk_00398 | https://docs.docker.com/engine/storage/ || [8] docker | Docker storage | docker_storage.md | chunk_00397 | https://docs.docker.com/engine/storage/ || [9] docker | Keep data with volumes and bind mounts | docker_persisting_data.md | chunk_00396 | https://docs.docker.com/learn/content/keep-data-with-volumes-and-bind-mounts/ || [10] docker | Docker storage | docker_storage.md | chunk_00406 | https://docs.docker.com/engine/storage/,docker;fastapi,,,,,,,,,
+S02,test,docker,sin_evidencia,¿Qué puerto del host tiene asignado ahora mismo el contenedor de mi API que está en ejecución?,La documentación no permite saberlo. Una respuesta correcta indica que es un dato del entorno en ejecución que no está en el corpus y no inventa un puerto.,,docker,"Para determinar el puerto que el contenedor de tu API FastAPI está utilizando en el host, puedes utilizar el comando `docker port` en tu terminal. Sin embargo, necesitarás saber el nombre o el ID del contenedor para ejecutar este comando.
+
+Por ejemplo, si el nombre del contenedor es `my-fastapi-container`, podrías ejecutar el siguiente comando:
+
+```bash
+docker port my-fastapi-container
+```
+
+Este comando mostrará el puerto que el contenedor está utilizando para la aplicación FastAPI. Por ejemplo, podrías ver algo como:
+
+```
+5000/tcp -> 8080/tcp
+```
+
+Esto significa que el contenedor está escuchando en el puerto 8080 del host, pero está redirigiendo las solicitudes a través del puerto 5000 dentro del contenedor.
+
+Si no tienes el nombre del contenedor, puedes obtenerlo con el comando `docker ps` que listará todos los contenedores que estén en ejecución. Si aún así no sabes el nombre del contenedor, podrías intentar buscar el puerto que estás utilizando en tu configuración de Docker, como el archivo `docker-compose.yml` si estás utilizando un archivo de configuración para tu aplicación.",No encuentro información suficiente en la documentación recuperada. [1],[1] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00487 | https://docs.docker.com/engine/network/port-publishing/ || [2] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00480 | https://docs.docker.com/engine/network/port-publishing/ || [3] docker | Bridge network driver | docker_bridge.md | chunk_00447 | https://docs.docker.com/engine/network/drivers/bridge/ || [4] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00486 | https://docs.docker.com/engine/network/port-publishing/ || [5] docker | Networking in Compose | compose_networking.md | chunk_00543 | https://docs.docker.com/compose/how-tos/networking/ || [6] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00497 | https://docs.docker.com/engine/network/port-publishing/ || [7] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00495 | https://docs.docker.com/engine/network/port-publishing/ || [8] docker | Networking in Compose | compose_networking.md | chunk_00523 | https://docs.docker.com/compose/how-tos/networking/,docker,,,,,,,,,
+O02,test,docker,fuera_de_corpus,¿Cómo se crea un servicio replicado en Docker Swarm con docker service create?,El corpus no incluye documentación de Docker Swarm. Una respuesta correcta reconoce que la documentación recuperada no cubre el tema y no inventa comandos ni opciones.,,docker,"Crear un servicio replicado en Docker Swarm utilizando `docker service create` es una forma de crear un servicio que se ejecuta en múltiples nodos del swarm. Sin embargo, `docker service create` es una forma de crear un servicio de forma estática, sin la capacidad de definir configuraciones complejas como replicas, replicas por nodo, o configuraciones de red avanzadas. Para servicios replicados en Docker Swarm, es más común usar `docker service create` en conjuntos de configuración (configurations) o definir un servicio con `docker service deploy`.
+
+Sin embargo, si quieres crear un servicio replicado de forma rápida y sencilla, puedes usar `docker service create` combinado con un archivo de configuración. Aquí te explico cómo hacerlo:
+
+1. **Crear un archivo de configuración**: Crear un archivo de configuración YAML que defina el servicio. Por ejemplo, `service.yml`:
+
+```yaml
+# service.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  replicas: 3
+  selector:
+    app: my-app
+  template:
+    spec:
+      containers:
+      - name: my-container
+        image: my-image:latest
+      restartPolicy: Always
+```
+
+Este archivo define un servicio con 3 replicas, que buscan un selector (`app: my-app`) en la imagen `my-image:latest`.
+
+2. **Crear el servicio en Docker Swarm**: Usar `docker service create` para ejecutar el servicio definido en el archivo de configuración:
+
+```bash
+docker service create --name my-service --config service.yml
+```
+
+Aquí, `--config service.yml` carga el archivo de configuración definido anteriormente.
+
+3. **Verificar el estado del servicio**: Puedes verificar el estado del servicio en Docker Swarm:
+
+```bash
+docker service ls
+```
+
+Esto mostrará información sobre todos los servicios en el swarm, incluyendo el número de replicas.
+
+4. **Configuraciones avanzadas**: Si necesitas configuraciones más avanzadas, como replicas por nodo, configuraciones de red, o configuraciones de red específicas para cada replica, tendrás que usar `docker service deploy` en conjunto con un archivo de configuración YAML.
+
+```bash
+docker service deploy --name my-service --config service.yml
+```
+
+Recuerda que `docker service create` es una forma rápida de crear un servicio, pero para configuraciones más complejas, es recomendable usar `docker service deploy` con un archivo de configuración YAML.
+
+Si necesitas más ayuda con Docker Swarm o con configuraciones específicas, no dudes en preguntar.",No encuentro información suficiente en la documentación recuperada. [1],[1] docker | Bridge network driver | docker_bridge.md | chunk_00441 | https://docs.docker.com/engine/network/drivers/bridge/ || [2] docker | Networking in Compose | compose_networking.md | chunk_00540 | https://docs.docker.com/compose/how-tos/networking/ || [3] docker | Networking overview | docker_networking.md | chunk_00418 | https://docs.docker.com/engine/network/ || [4] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00499 | https://docs.docker.com/engine/network/port-publishing/ || [5] docker | Networking in Compose | compose_networking.md | chunk_00519 | https://docs.docker.com/compose/how-tos/networking/ || [6] docker | Networking in Compose | compose_networking.md | chunk_00528 | https://docs.docker.com/compose/how-tos/networking/ || [7] docker | Networking in Compose | compose_networking.md | chunk_00522 | https://docs.docker.com/compose/how-tos/networking/ || [8] docker | Networking overview | docker_networking.md | chunk_00411 | https://docs.docker.com/engine/network/,docker,,,,,,,,,
+P01,test,docker,premisa_falsa,¿Qué opción hay que añadir a la instrucción EXPOSE para que el puerto quede accesible desde fuera del host?,La premisa es falsa: EXPOSE no publica puertos y no tiene una opción para hacerlo; solo documenta el puerto en el que escucha la aplicación. Para que sea accesible desde fuera del host hay que publicarlo al ejecutar el contenedor con -p o --publish.,docker_write_dockerfile.md;docker_port_publishing.md,docker,"Para que un puerto esté accesible desde fuera del host en un contenedor Docker, debes usar la opción `EXPOSE` en tu Dockerfile o en la instrucción `docker run` para indicar el puerto que quieres que esté disponible. Sin embargo, `EXPOSE` no expone el puerto al host. Para que el puerto esté disponible desde fuera del host, debes usar la opción `PUBLISH` o `publish-all`.
+
+La opción `PUBLISH` o `publish-all` se usa para exporar el puerto al host. Aquí tienes cómo hacerlo:
+
+1. **Usando `PUBLISH` en la instrucción `docker run`:**
+
+```bash
+docker run -p 80:80 myapp
+```
+
+En este ejemplo, el puerto 80 del contenedor se vincula al puerto 80 del host.
+
+2. **Usando `publish-all` en la instrucción `docker run`:**
+
+```bash
+docker run -p 80:80 -p 443:443 myapp
+```
+
+En este caso, se vinculan los puertos 80 y 443 del contenedor al 80 y 443 del host, respectivamente.
+
+3. **Usando `EXPOSE` en el Dockerfile:**
+
+```Dockerfile
+EXPOSE 80
+EXPOSE 443
+```
+
+El uso de `EXPOSE` en el Dockerfile solo indica a Docker los puertos que el contenedor va a usar. No expone los puertos al host. Para que los puertos estén disponibles desde fuera del host, debes usar `PUBLISH` o `publish-all` en la instrucción `docker run`.
+
+En resumen, si quieres que un puerto esté accesible desde fuera del host, debes usar `PUBLISH` o `publish-all` en la instrucción `docker run`. Si solo quieres que el contenedor use un puerto, puedes usar `EXPOSE` en el Dockerfile.","La opción que hay que añadir a la instrucción `EXPOSE` para que el puerto quede accesible desde fuera del host es la opción `-p` o `--publish`. Para que el puerto quede accesible desde fuera del host, se debe usar la opción `-p` o `--publish` en la instrucción `docker run`. [8]",[1] docker | Bridge network driver | docker_bridge.md | chunk_00447 | https://docs.docker.com/engine/network/drivers/bridge/ || [2] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00492 | https://docs.docker.com/engine/network/port-publishing/ || [3] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00495 | https://docs.docker.com/engine/network/port-publishing/ || [4] docker | Bridge network driver | docker_bridge.md | chunk_00433 | https://docs.docker.com/engine/network/drivers/bridge/ || [5] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00314 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [6] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00308 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [7] docker | Bridge network driver | docker_bridge.md | chunk_00441 | https://docs.docker.com/engine/network/drivers/bridge/ || [8] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00479 | https://docs.docker.com/engine/network/port-publishing/,docker,,,,,,,,,

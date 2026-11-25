@@ -54,3 +54,14 @@ if min(
     RRF_EXPANDED_QUERY_WEIGHT,
 ) <= 0:
     raise ValueError("Los pesos de las consultas RRF deben ser mayores que cero.")
+
+# Búsqueda híbrida: además de los embeddings, cada consulta se busca con
+# BM25 (coincidencia de términos) y ambos rankings se fusionan con RRF.
+# BM25_WEIGHT multiplica el peso de la consulta para el ranking léxico.
+HYBRID_SEARCH_ENABLED = (
+    os.getenv("HYBRID_SEARCH_ENABLED", "true").lower()
+    in {"1", "true", "yes", "si", "sí"}
+)
+BM25_WEIGHT = float(os.getenv("BM25_WEIGHT", "1.5"))
+if BM25_WEIGHT < 0:
+    raise ValueError("BM25_WEIGHT no puede ser negativo.")

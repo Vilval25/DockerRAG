@@ -1,8 +1,11 @@
 """Recuperación y generación con/sin RAG para documentación Docker + FastAPI."""
+from collections import Counter
 from functools import lru_cache
+import math
 import re
 
 from langchain_chroma import Chroma
+from langchain_core.documents import Document
 from langchain_ollama import ChatOllama
 
 from .config import (
@@ -17,6 +20,8 @@ from .config import (
     RRF_CONSTANT,
     RRF_ORIGINAL_QUERY_WEIGHT,
     RRF_EXPANDED_QUERY_WEIGHT,
+    HYBRID_SEARCH_ENABLED,
+    BM25_WEIGHT,
 )
 from .ingest import make_embeddings
 
@@ -284,12 +289,77 @@ def resolve_domains(question: str, domain: str | None = None) -> tuple[str, ...]
 
     return ("fastapi", "docker")
 
+_TOKEN_RE = re.compile(r"\w+")
+
+
+def tokenize(text: str) -> list[str]:
+    """Tokenización simple para BM25: minúsculas y secuencias alfanuméricas.
+
+    Conserva identificadores como env_file, BaseSettings o compose como un
+    único término, que es donde la búsqueda léxica aporta sobre embeddings.
+    """
+    return _TOKEN_RE.findall(text.casefold())
+
+
+class BM25Index:
+    """Índice BM25 (Okapi) en memoria sobre una lista de fragmentos."""
+
+    def __init__(self, docs: list[Document], k1: float = 1.5, b: float = 0.75):
+        self.docs = docs
+        self.k1 = k1
+        self.b = b
+        self.term_freqs = [Counter(tokenize(doc.page_content)) for doc in docs]
+        self.lengths = [sum(tf.values()) for tf in self.term_freqs]
+        self.avg_length = sum(self.lengths) / len(self.lengths) if docs else 0.0
+        doc_freq = Counter(term for tf in self.term_freqs for term in tf)
+        total = len(docs)
+        self.idf = {
+            term: math.log(1 + (total - df + 0.5) / (df + 0.5))
+            for term, df in doc_freq.items()
+        }
+
+    def search(self, query: str, k: int) -> list[Document]:
+        terms = [term for term in set(tokenize(query)) if term in self.idf]
+        if not terms:
+            return []
+        scored = []
+        for index, tf in enumerate(self.term_freqs):
+            norm = self.k1 * (1 - self.b + self.b * self.lengths[index] / self.avg_length)
+            score = sum(
+                self.idf[term] * tf[term] * (self.k1 + 1) / (tf[term] + norm)
+                for term in terms
+                if term in tf
+            )
+            if score > 0:
+                scored.append((score, index))
+        scored.sort(reverse=True)
+        return [self.docs[index] for _score, index in scored[:k]]
+
+
+@lru_cache(maxsize=1)
+def get_bm25_indexes() -> dict[str, BM25Index]:
+    """Construye un índice BM25 por dominio con los fragmentos de Chroma."""
+    data = get_store()._collection.get(include=["documents", "metadatas"])
+    by_domain: dict[str, list[Document]] = {}
+    for text, metadata in zip(data["documents"], data["metadatas"]):
+        metadata = metadata or {}
+        by_domain.setdefault(metadata.get("domain", ""), []).append(
+            Document(page_content=text or "", metadata=metadata)
+        )
+    return {name: BM25Index(docs) for name, docs in by_domain.items()}
+
+
 def retrieve(
     question: str,
     k: int | None = None,
     domain: str | None = None,
 ):
-    """Recupera fragmentos con consultas específicas por dominio y fusión RRF.
+    """Recupera fragmentos con búsqueda híbrida y fusión RRF.
+
+    Para cada dominio y cada consulta (original y expansión bilingüe) se
+    combinan dos rankings: similitud de embeddings (Chroma) y BM25 sobre los
+    mismos fragmentos. La fusión RRF usa solo las posiciones, así que no hace
+    falta comparar puntuaciones de escalas distintas.
 
     domain='docker' o domain='fastapi': fuerza la búsqueda en ese dominio.
     domain=None: detecta el dominio a partir de la pregunta. Si identifica
@@ -317,10 +387,28 @@ def retrieve(
     # La búsqueda de cada variante se fusiona por posición, no comparando
     # directamente distancias de consultas diferentes.
     fused = {current_domain: {} for current_domain in domains}
+    bm25_indexes = get_bm25_indexes() if HYBRID_SEARCH_ENABLED else {}
+
+    def add_result(current_domain, doc, rank, weight, distance=math.inf):
+        metadata = doc.metadata or {}
+        unique_key = (
+            metadata.get("filename"),
+            metadata.get("chunk_id"),
+            metadata.get("source", metadata.get("url")),
+        )
+        if unique_key not in fused[current_domain]:
+            fused[current_domain][unique_key] = {
+                "doc": doc,
+                "rrf_score": 0.0,
+                "best_distance": math.inf,
+                "matched_queries": 0,
+            }
+        item = fused[current_domain][unique_key]
+        item["rrf_score"] += weight / (RRF_CONSTANT + rank)
+        item["best_distance"] = min(item["best_distance"], float(distance))
+        item["matched_queries"] += 1
 
     for current_domain in domains:
-        # Cada dominio recibe variantes de búsqueda adaptadas a su propia
-        # documentación, en lugar de compartir una única consulta genérica.
         domain_query_specs = get_search_query_specs(question, current_domain)
         for query, query_weight, _query_type in domain_query_specs:
             results = store.similarity_search_with_score(
@@ -328,29 +416,15 @@ def retrieve(
                 k=QUERY_EXPANSION_SEARCH_K,
                 filter={"domain": current_domain},
             )
-
             for rank, (doc, distance) in enumerate(results, start=1):
-                metadata = doc.metadata or {}
-                unique_key = (
-                    metadata.get("filename"),
-                    metadata.get("chunk_id"),
-                    metadata.get("source", metadata.get("url")),
-                )
+                add_result(current_domain, doc, rank, query_weight, distance)
 
-                if unique_key not in fused[current_domain]:
-                    fused[current_domain][unique_key] = {
-                        "doc": doc,
-                        "rrf_score": 0.0,
-                        "best_distance": float(distance),
-                        "matched_queries": 0,
-                    }
-
-                item = fused[current_domain][unique_key]
-                item["rrf_score"] += query_weight / (RRF_CONSTANT + rank)
-                item["best_distance"] = min(
-                    item["best_distance"], float(distance)
+            if current_domain in bm25_indexes:
+                lexical = bm25_indexes[current_domain].search(
+                    query, QUERY_EXPANSION_SEARCH_K
                 )
-                item["matched_queries"] += 1
+                for rank, doc in enumerate(lexical, start=1):
+                    add_result(current_domain, doc, rank, query_weight * BM25_WEIGHT)
 
     selected = []
     for current_domain in domains:

@@ -1,43 +1,93 @@
 ﻿id,split,domain,category,question,expected_answer,expected_sources,detected_domains,answer_base,answer_rag,retrieved_sources,retrieved_domains,retrieval_relevant,accuracy_base,accuracy_rag,grounded_base,grounded_rag,hallucination_base,hallucination_rag,notes,execution_error
-F01,dev,fastapi,directa,¿Cómo se declara en FastAPI un parámetro de ruta de tipo entero y qué ocurre si se envía un valor que no es entero?,"Se declara el marcador en la ruta (/items/{item_id}) y el parámetro con anotación de tipo en la función: item_id: int. FastAPI convierte el valor y lo valida. Si se envía un valor no entero como foo, responde con un error de validación de tipo int_parsing y el mensaje 'Input should be a valid integer, unable to parse string as an integer'. Lo mismo ocurre con un decimal como 4.2.",fastapi_path_params.md,fastapi,"En FastAPI, puedes declarar un parámetro de ruta de tipo entero utilizando la anotación `Depends` junto con `Depends(IntegerPath)` o simplemente `Depends` si ya estás utilizando `Depends` para otros tipos. Aquí tienes un ejemplo de cómo se podría hacer:
+F01,dev,fastapi,directa,¿Cómo se declara en FastAPI un parámetro de ruta de tipo entero y qué ocurre si se envía un valor que no es entero?,"Se declara el marcador en la ruta (/items/{item_id}) y el parámetro con anotación de tipo en la función: item_id: int. FastAPI convierte el valor y lo valida. Si se envía un valor no entero como foo, responde con un error de validación de tipo int_parsing y el mensaje 'Input should be a valid integer, unable to parse string as an integer'. Lo mismo ocurre con un decimal como 4.2.",fastapi_path_params.md,fastapi,"En FastAPI, puedes declarar un parámetro de ruta de tipo entero utilizando la anotación `Depends` junto con `Depends(IntegerPath)` o directamente `Path[int]`. Aquí te muestro cómo se haría la declaración:
 
 ```python
-from fastapi import FastAPI, Depends, IntegerPath
+from fastapi import FastAPI, Path
 
 app = FastAPI()
 
 @app.get(""/items/{item_id}"")
-async def read_item(item_id: IntegerPath):
+async def read_item(item_id: int = Path(..., ge=0)):
     return {""item_id"": item_id}
 ```
 
-En este ejemplo, `item_id` es un parámetro de ruta que se espera que sea un número entero. Si se envía un valor que no es un número entero, FastAPI lanzará una excepción de tipo de dato inesperado.
+En este ejemplo, `item_id` es un parámetro de ruta que se espera que sea un entero. La anotación `Path[int]` indica que el parámetro debe ser de tipo entero.
 
-Si el valor no es un número entero, FastAPI lanzará una excepción de tipo de dato inesperado. Esto se puede manejar en la función de manejo de errores de la ruta o en el controlador de la función. Aquí tienes un ejemplo de cómo manejar esta excepción:
+Si se envía un valor que no es un entero, FastAPI lanzará una excepción de tipo `HTTPException`. Por defecto, FastAPI utiliza la configuración de `pydantic` para manejar los errores de tipo, lo que significa que FastAPI intentará convertir el valor recibido en un entero. Si no se puede convertir, FastAPI lanzará una excepción de tipo `HTTPException` con el código de estado `422` (Unprocessable Entity).
+
+Para manejar este tipo de errores, puedes configurar FastAPI para que lance una excepción personalizada o para que maneje el error de una manera diferente. Por ejemplo, puedes configurar FastAPI para que lance una excepción de tipo `HTTPException` con un código de estado específico:
 
 ```python
-from fastapi import FastAPI, Depends, IntegerPath
-from fastapi.exceptions import HTTPException
-from fastapi.param_functions import Depends
+from fastapi import FastAPI, HTTPException
+from pydantic import ValidationError
 
 app = FastAPI()
 
-def get_item_id(item_id: IntegerPath):
-    if not isinstance(item_id, int):
-        raise HTTPException(status_code=400, detail=""El ID debe ser un número entero"")
-    return item_id
-
 @app.get(""/items/{item_id}"")
-async def read_item(item_id: IntegerPath = Depends(get_item_id)):
+async def read_item(item_id: int = Path(..., ge=0)):
     return {""item_id"": item_id}
 ```
 
-En este caso item_id, si no es un número entero, se lanzará una excepción HTTP 400 con un mensaje de error. 
+En este caso, FastAPI intentará convertir el valor recibido en un entero. Si no se puede convertir, FastAPI lanzará una excepción de tipo `ValidationError` que FastAPI manejará como una excepción de tipo `HTTPException` con el código de estado `422`.
 
-Es importante tener en cuenta que FastAPI no realiza ninguna validación en tiempo de ejecución para asegurar que los parámetros de ruta tengan un tipo específico. La validación de tipos de datos se realiza en tiempo de compilación y FastAPI no realiza ninguna validación en tiempo de ejecución. Por lo tanto, si se envía un valor que no es de tipo entero, FastAPI no realizará ninguna validación y simplemente lanzará una excepción de tipo de dato inesperado.","Para declarar un parámetro de ruta de tipo entero en FastAPI, se utiliza el decorador `@app.get` o `@app.post` seguido de la ruta y los parámetros. En este caso de ejemplo, se declara un parámetro de ruta llamado `item_id` de tipo entero:
+Para manejar este error de manera personalizada, puedes configurar FastAPI para que lance una excepción de tipo `HTTPException` con un código de estado específico:
 
 ```python
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from pydantic import ValidationError
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Path(..., ge=0)):
+    return {""item_id"": item_id}
+```
+
+Si deseas manejar este error de manera diferente, puedes configurar FastAPI para que lance una excepción de tipo `HTTPException` con un código de estado específico:
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import ValidationError
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Path(..., ge=0)):
+    return {""item_id"": item_id}
+```
+
+En este caso, FastAPI intentará convertir el valor recibido en un entero. Si no se puede convertir, FastAPI lanzará una excepción de tipo `ValidationError` que FastAPI manejará como una excepción de tipo `HTTPException` con el código de estado `422`.
+
+Para manejar este error de manera personalizada, puedes configurar FastAPI para que lance una excepción de tipo `HTTPException` con un código de estado específico:
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import ValidationError
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Path(..., ge=0)):
+    return {""item_id"": item_id}
+```
+
+Si deseas manejar este error de manera diferente, puedes configurar FastAPI para que lance una excepción de tipo `HTTPException` con un código de estado específico:
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import ValidationError
+
+app = FastAPI()
+
+@app.get(""/items/{item_id}"")
+async def read_item(item_id: int = Path(..., ge=0)):
+    return {""item_id"": item_id}
+```
+
+En este ejemplo, FastAPI intentará convertir el valor recibido en un entero. Si no se puede convertir, FastAPI lanzará una excepción de tipo `ValidationError` que FastAPI manejará como una excepción de tipo `HTTPException` con el código de estado `422`. Si deseas manejar este error de manera diferente, puedes configurar FastAPI para que lance una excepción de tipo `HTTPException` con un código de estado específico.","Para declarar un parámetro de ruta de tipo entero en FastAPI, se utiliza la función `Path` junto con el tipo de dato `int`. Por ejemplo:
+
+```python
+from fastapi import FastAPI, Path
 
 app = FastAPI()
 
@@ -46,10 +96,10 @@ async def read_item(item_id: int):
     return {""item_id"": item_id}
 ```
 
-Si se envía un valor que no es un entero, FastAPI lanzará una excepción de tipo incompatible. Esto se debe a que FastAPI espera que los parámetros de ruta tengan tipos de datos específicos y no permite valores que no coincidan con estos tipos. En este caso de ejemplo, si se envía una cadena en lugar de un entero, FastAPI lanzará una excepción de tipo incompatible. [1]",[1] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00000 | https://fastapi.tiangolo.com/tutorial/path-params/ || [2] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00102 | https://fastapi.tiangolo.com/tutorial/response-model/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Request Body | fastapi_request_body.md | chunk_00090 | https://fastapi.tiangolo.com/tutorial/body/ || [5] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00100 | https://fastapi.tiangolo.com/tutorial/response-model/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00120 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00021 | https://fastapi.tiangolo.com/tutorial/query-params/ || [8] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00130 | https://fastapi.tiangolo.com/tutorial/response-model/,fastapi,,,,,,,,,
-F03,dev,fastapi,directa,¿Cómo se declara el cuerpo de una solicitud con Pydantic y qué hace FastAPI automáticamente con esa declaración?,"Se crea una clase que hereda de BaseModel y se declara como parámetro de la función. Con eso FastAPI lee el cuerpo como JSON, convierte los tipos si hace falta, valida los datos (y si no son válidos devuelve un error claro indicando dónde y qué dato es incorrecto), entrega los datos recibidos en el parámetro y genera definiciones JSON Schema del modelo.",fastapi_request_body.md,fastapi,"En FastAPI, Pydantic se utiliza para declarar el cuerpo de una solicitud de manera que FastAPI pueda validar y deserializar automáticamente los datos enviados en la solicitud HTTP.
+Si se envía un valor que no es entero, FastAPI lanzará una excepción de tipo incompatible. Esto se debe a que FastAPI requiere que los parámetros de ruta tengan tipos de datos específicos, en este caso de tipo `int`. Si se proporciona un valor que no cumple con este tipo, FastAPI intentará convertirlo, pero si no es posible, lanzará una excepción de tipo incompatible.",[1] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00040 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [2] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00000 | https://fastapi.tiangolo.com/tutorial/path-params/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00102 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI Request Body | fastapi_request_body.md | chunk_00090 | https://fastapi.tiangolo.com/tutorial/body/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00100 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00244 | https://fastapi.tiangolo.com/deployment/docker/ || [8] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00234 | https://fastapi.tiangolo.com/deployment/docker/,fastapi,,,,,,,,,
+F03,dev,fastapi,directa,¿Cómo se declara el cuerpo de una solicitud con Pydantic y qué hace FastAPI automáticamente con esa declaración?,"Se crea una clase que hereda de BaseModel y se declara como parámetro de la función. Con eso FastAPI lee el cuerpo como JSON, convierte los tipos si hace falta, valida los datos (y si no son válidos devuelve un error claro indicando dónde y qué dato es incorrecto), entrega los datos recibidos en el parámetro y genera definiciones JSON Schema del modelo.",fastapi_request_body.md,fastapi,"En FastAPI, Pydantic se utiliza para declarar el cuerpo de una solicitud de manera que FastAPI pueda validar y deserializar automáticamente los datos que llegan en la solicitud HTTP.
 
-El cuerpo de una solicitud en FastAPI se declara utilizando la clase Pydantic. Pydantic es una biblioteca de validación de datos que permite definir modelos de datos y validar automáticamente los datos que se envían a través de una solicitud HTTP.
+El cuerpo de una solicitud en FastAPI se declara utilizando la clase Pydantic. Pydantic es una biblioteca de validación de datos que permite definir modelos de datos (clases Pydantic) y validar automáticamente los datos que llegan a través de una solicitud HTTP.
 
 Aquí tienes un ejemplo de cómo se podría declarar el cuerpo de una solicitud con Pydantic:
 
@@ -70,169 +120,129 @@ async def create_item(item: Item):
     return item
 ```
 
-En este ejemplo, `Item` es una clase que hereda de `BaseModel` de Pydantic. Esto significa que cualquier objeto de `Item` se puede serializar y deserializar automáticamente. Además, FastAPI automáticamente valida los datos enviados en la solicitud HTTP contra el modelo `Item`.
+En este ejemplo, `Item` es una clase Pydantic que define los campos que se esperan en la solicitud. FastAPI automáticamente valida los datos que llegan en la solicitud y los deserializa en una instancia de la clase `Item`. Si los datos no cumplen con los campos definidos en `Item`, FastAPI lanzará una excepción de validación.
 
-Cuando se envía una solicitud POST a la ruta `/items/`, FastAPI automáticamente intentará deserializar los datos enviados en el cuerpo de la solicitud en un objeto de `Item`. Si los datos no cumplen con el modelo de `Item`, FastAPI lanzará una excepción de validación.
+Además, FastAPI también proporciona automáticamente una representación de la clase `Item` como JSON, que se puede usar para la respuesta de la solicitud. Esto se logra gracias a la implementación de la clase `Item` con la decoración `@pydantic.mainclass`.
 
-Por ejemplo, si se envía una solicitud con los siguientes datos en el cuerpo:
+En resumen, Pydantic permite a FastAPI manejar automáticamente la validación y deserialización de datos en el cuerpo de una solicitud, lo que simplifica significativamente el desarrollo de APIs con FastAPI.","Para declarar el cuerpo de una solicitud con Pydantic en FastAPI, se utiliza la declaración de parámetros de función. En el fragmento [1], se muestra cómo se puede declarar el cuerpo de una solicitud junto con los parámetros de ruta y de consulta. FastAPI reconoce cada tipo de parámetro y toma los datos de la ubicación correcta.",[1] fastapi | FastAPI Request Body | fastapi_request_body.md | chunk_00096 | https://fastapi.tiangolo.com/tutorial/body/ || [2] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00126 | https://fastapi.tiangolo.com/tutorial/response-model/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00100 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00120 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/ || [6] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00158 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [7] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00110 | https://fastapi.tiangolo.com/tutorial/response-model/ || [8] fastapi | FastAPI Request Body | fastapi_request_body.md | chunk_00097 | https://fastapi.tiangolo.com/tutorial/body/,fastapi,,,,,,,,,
+F05,dev,fastapi,aplicada,¿Cómo evita FastAPI devolver la contraseña de un usuario en la respuesta si el modelo de entrada la incluye?,"Declarando un modelo de salida distinto del de entrada: un modelo de entrada con la contraseña y uno de salida sin ella, indicado con el parámetro response_model del decorador o con la anotación del tipo de retorno. FastAPI filtra los datos devueltos según el modelo de salida, de modo que la contraseña no se incluye.",fastapi_response_model.md,fastapi,"FastAPI no tiene directamente una funcionalidad para evitar que devuelva la contraseña en la respuesta si la incluye en la entrada. Sin embargo, hay varias estrategias que puedes implementar para manejar esta situación de manera efectiva:
 
-```json
-{
-  ""name"": ""Camisa"",
-  ""price"": 15.5,
-  ""description"": ""Camisa de manga larga"",
-  ""tax"": 0.19
-}
-```
+1. **Validación de Entrada**: Asegúrate de validar adecuadamente los datos de entrada. Puedes usar bibliotecas como Pydantic para definir modelos de datos y validar automáticamente los datos que recibes.
 
-FastAPI intentará deserializar estos datos en un objeto de `Item` y luego lo devolverá como respuesta.
+2. **Encapsulamiento de Datos**: Si la contraseña es un dato sensible, puedes encapsularla de alguna manera. Por ejemplo, puedes devolver una representación simplificada de los datos, omitiendo la contraseña.
 
-Si los datos no cumplen con el modelo de `Item`, FastAPI lanzará una excepción de validación, que puedes manejar en tu aplicación para proporcionar una respuesta adecuada al cliente.
+3. **Tokenización**: Si estás trabajando con autenticación, puedes devolver un token en lugar de la contraseña. FastAPI no tiene directamente una funcionalidad para esto, pero puedes usar una librería como `fastapi-jwt` para manejar el token.
 
-Es importante notar que si no se especifica un valor para `description` y `tax`, Pydantic los considerará como `None`. Si deseas que sean obligatorios, puedes hacerlo de la siguiente manera:
+4. **Middleware**: Puedes crear un middleware que manipule la respuesta antes de que llegue al cliente. En este middleware, puedes modificar la respuesta para que no contenga la contraseña.
+
+Aquí te dejo un ejemplo de cómo podrías implementar un middleware para encapsular la contraseña:
 
 ```python
-class Item(BaseModel):
-    name: str
-    price: float
-    description: str = None
-    tax: float = None
+from fastapi import FastAPI, Request
+from fastapi.middleware import Middleware
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {float: lambda v: int(v) if v.is_integer() else v}
+app = FastAPI()
+
+# Middleware para encapsular la contraseña
+class EncapsulatePasswordMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        request = Request(scope)
+        response = await self.app(scope, receive, lambda r: JSONResponse(r.body, status_code=r.status_code, headers=r.headers))
+        response.body = self.encapsulate_password(response.body)
+        return response
+
+    def encapsulate_password(self, body):
+        # Aquí puedes implementar cómo encapsularías la contraseña, por ejemplo, cambiando el valor de la contraseña a un string vacío
+        return body.replace(b'contraseña', b'')
+        
+app.add_middleware(EncapsulatePasswordMiddleware, app=app)
 ```
 
-En este caso, `allow_population_by_field_name` permite que los campos se deserialicen por nombre de campo en lugar de por nombre de atributo. `arbitrary_types_allowed` permite que Pydantic acepte tipos arbitrarios. Y `json_encoders` es una función que se usa para codificar los datos antes de enviarlos como respuesta. En este caso ""json_encoders"" se utiliza para convertir los números a enteros si son enteros.
+En este ejemplo, el middleware `EncapsulatePasswordMiddleware` reemplaza la contraseña en la respuesta con un string vacío. Esto es solo un ejemplo y tendrías que adaptarlo según tus necesidades específicas.
 
-Espero que esto te ayude a entender cómo FastAPI y Pydantic trabajan juntos para manejar el cuerpo de una solicitud.","Para declarar el cuerpo de una solicitud con Pydantic en FastAPI, se utiliza la anotación de tipo de función para especificar el tipo de datos que se esperan en el cuerpo de la solicitud. FastAPI automáticamente reconoce los parámetros de cuerpo, los datos del cuerpo se extraen de la solicitud y se utilizan para crear un objeto Pydantic según el tipo de datos especificado.
+5. **Modelos de Datos**: Define modelos de datos que solo contienen los datos que realmente necesitas devolver. Esto no evita que la contraseña esté en la entrada, pero sí asegura que solo se devuelvan los datos necesarios.
 
-[5]",[1] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00120 | https://fastapi.tiangolo.com/tutorial/response-model/ || [2] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00110 | https://fastapi.tiangolo.com/tutorial/response-model/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Request Body | fastapi_request_body.md | chunk_00097 | https://fastapi.tiangolo.com/tutorial/body/ || [5] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00100 | https://fastapi.tiangolo.com/tutorial/response-model/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00137 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00126 | https://fastapi.tiangolo.com/tutorial/response-model/ || [8] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00021 | https://fastapi.tiangolo.com/tutorial/query-params/,fastapi,,,,,,,,,
-F05,dev,fastapi,aplicada,¿Cómo evita FastAPI devolver la contraseña de un usuario en la respuesta si el modelo de entrada la incluye?,"Declarando un modelo de salida distinto del de entrada: un modelo de entrada con la contraseña y uno de salida sin ella, indicado con el parámetro response_model del decorador o con la anotación del tipo de retorno. FastAPI filtra los datos devueltos según el modelo de salida, de modo que la contraseña no se incluye.",fastapi_response_model.md,fastapi,"FastAPI no tiene directamente una funcionalidad para evitar que la contraseña se devuelva en la respuesta si se incluye en la entrada. Sin embargo, hay varias estrategias que puedes implementar para proteger la seguridad de las contraseñas sin eliminarlas de la respuesta JSON:
+6. **Autenticación y Autorización**: Si estás trabajando con autenticación, asegúrate de que solo se devuelvan los datos necesarios para la autenticación, como un token o un código de acceso.
 
-1. **Usar un Hashing**: En lugar de enviar la contraseña en texto plano, puedes usar un algoritmo de hashing como Argon2, bcrypt o SHA256 para convertir la contraseña en un hash. Esto asegura que la contraseña no esté visible en la respuesta JSON, pero también garantiza que la contraseña no pueda ser recuperada a partir del hash.
+Recuerda que la seguridad es crucial, por lo que siempre debes revisar cuidadosamente cómo manejas los datos sensibles en tu aplicación.","FastAPI evita devolver la contraseña de un usuario en la respuesta si el modelo de entrada la incluye utilizando un modelo de salida diferente al modelo de entrada. En el fragmento [3], se muestra cómo se puede crear un modelo de salida que no incluya la contraseña, lo que permite que FastAPI filtre los datos no declarados en el modelo de salida. Esto se logra mediante la declaración de un modelo de salida (`UserOut`) que no incluye la contraseña (`password`) y se utiliza como modelo de respuesta (`response_model=UserOut`) en la función de ruta (`create_user`). Como resultado, la contraseña no se incluirá en la respuesta devuelta.",[1] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00109 | https://fastapi.tiangolo.com/tutorial/response-model/ || [2] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00110 | https://fastapi.tiangolo.com/tutorial/response-model/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00112 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00114 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00113 | https://fastapi.tiangolo.com/tutorial/response-model/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00129 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00118 | https://fastapi.tiangolo.com/tutorial/response-model/ || [8] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00102 | https://fastapi.tiangolo.com/tutorial/response-model/,fastapi,,,,,,,,,
+F07,dev,fastapi,aplicada,¿Cómo se reutilizan los mismos parámetros comunes en varios endpoints mediante dependencias de FastAPI?,"Se define una función dependencia (por ejemplo common_parameters con q, skip y limit) y se declara en cada endpoint con Depends, como commons: Annotated[dict, Depends(common_parameters)]. Para no repetir la declaración se puede crear un alias: CommonsDep = Annotated[dict, Depends(common_parameters)].",fastapi_dependencies.md,fastapi,"En FastAPI, se pueden reutilizar los mismos parámetros comunes en varios endpoints utilizando las dependencias. Las dependencias en FastAPI son una forma de reutilizar código y mantener la consistencia en los parámetros de los endpoints. Aquí te explico cómo hacerlo:
 
-2. **Usar un Modelo de Entidad (Entity Model)**: Puedes crear un modelo de entidad que no incluya la contraseña en la salida JSON. Por ejemplo, si tienes un modelo de usuario que incluye la contraseña, puedes crear un nuevo modelo que solo incluya los campos relevantes para la respuesta JSON.
+1. **Definir una Dependencia**: Primero, debes definir una función que será la dependencia. Esta función puede recibir cualquier tipo de parámetros que necesites, como `Request`, `HTTPException`, `Depends`, etc.
 
-3. **Usar Decoradores de FastAPI**: Puedes usar decoradores como `Depends` para asegurar que solo se devuelvan los campos necesarios. Esto no es una protección contra la contraseña, pero puede ayudar a mantener la respuesta JSON más segura.
+2. **Usar la Dependencia en los Endpoints**: Luego, puedes usar esta función como parámetro en tus endpoints. FastAPI automáticamente la inyectará en cada endpoint que la use.
 
-4. **Usar JWT (JSON Web Tokens)**: En lugar de enviar la contraseña en la respuesta, puedes enviar un JWT que contiene los datos del usuario y que se puede verificar para asegurar que el usuario es autenticado. Esto no implica que la contraseña no esté en el sistema, pero no se devuelve en la respuesta JSON.
-
-Aquí te dejo un ejemplo de cómo podrías implementar el segundo método con FastAPI:
+Aquí tienes un ejemplo de cómo hacerlo:
 
 ```python
 from fastapi import FastAPI, Depends, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+from fastapi.security import OAuth2PasswordBearer
 
 app = FastAPI()
 
-class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: Optional[bool] = None
+# Definir una dependencia
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=""token"")
 
-class UserInDB(User):
-    password: str
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    # Aquí puedes validar el token y devolver el usuario correspondiente
+    if token == ""valid_token"":
+        return {""username"": ""user1""}
+    else:
+        raise HTTPException(status_code=401, detail=""Invalid token"")
 
-class UserOut(User):
-    id: int
-
-def get_user(user_id: int):
-    # Aquí debes implementar la lógica para obtener un usuario de la base de datos
-    # Por simplicidad, usaremos un diccionario
-    return UserOut(id=user_id)
-
-def get_user_entity(user_id: int):
-    user = get_user(user_id)
-    return UserOut(**user.dict())
-
-def get_user_entity_with_password(user_id: int):
-    user = get_user(user_id)
-    user.password = ""password_hashed""  # Aquí debes implementar la lógica para obtener el hash de la contraseña
-    return UserOut(**user.dict())
-
-@app.get(""/users/{user_id}"", response_model=UserOut)
-def read_user(user_id: int, current_user: UserOut = Depends(get_user_entity_with_password)):
+# Endpoint que usa la dependencia
+@app.get(""/users/me"")
+async def read_users_me(current_user: dict = Depends(get_current_user)):
     return current_user
 ```
 
-En este ejemplo, `get_user_entity_with_password` es una función que obtiene un usuario de la base de datos y luego modifica el objeto para que no incluya la contraseña en la salida JSON. Esto no es una protección contra la contraseña, pero ayuda a mantener la respuesta JSON más segura.
+En este ejemplo, `get_current_user` es una función que se utiliza como dependencia en el endpoint `/users/me`. Cada vez que se llame a este endpoint, `get_current_user` se ejecutará y devolverá el usuario actualizado.
 
-Recuerda que la seguridad de las contraseñas es un tema serio y requiere una implementación cuidadosa. Siempre debes considerar las mejores prácticas de seguridad y consultar a expertos si estás trabajando en un proyecto real.","FastAPI evita devolver la contraseña de un usuario en la respuesta si el modelo de entrada la incluye configurando el modelo de salida (`response_model`) para que no incluya la contraseña. En el ejemplo proporcionado, se declara un modelo de salida (`UserOut`) que no incluye la contraseña (`password`). Esto impide que la contraseña se devuelva en la respuesta [5].",[1] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00109 | https://fastapi.tiangolo.com/tutorial/response-model/ || [2] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00112 | https://fastapi.tiangolo.com/tutorial/response-model/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00110 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00102 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00114 | https://fastapi.tiangolo.com/tutorial/response-model/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00128 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00113 | https://fastapi.tiangolo.com/tutorial/response-model/ || [8] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/,fastapi,,,,,,,,,
-F07,dev,fastapi,aplicada,¿Cómo se reutilizan los mismos parámetros comunes en varios endpoints mediante dependencias de FastAPI?,"Se define una función dependencia (por ejemplo common_parameters con q, skip y limit) y se declara en cada endpoint con Depends, como commons: Annotated[dict, Depends(common_parameters)]. Para no repetir la declaración se puede crear un alias: CommonsDep = Annotated[dict, Depends(common_parameters)].",fastapi_dependencies.md,fastapi,"En FastAPI, se pueden reutilizar los mismos parámetros comunes en varios endpoints utilizando las dependencias. Las dependencias en FastAPI son una forma de reutilizar código y mantener la consistencia en los parámetros de los endpoints. Aquí te muestro cómo hacerlo:
+### Otros Tipos de Dependencias
 
-1. **Definir una Dependencia**: Primero, debes definir una función que será tu dependencia. Esta función puede recibir cualquier tipo de parámetros que necesites.
+- **Dependencias de tipo**: Puedes definir dependencias que esperen un tipo específico, como `str`, `int`, `List`, etc.
+- **Dependencias de tipo personalizado**: Puedes crear tu propia dependencia que devuelva cualquier tipo de objeto.
 
-```python
-from fastapi import Depends, FastAPI
-
-app = FastAPI()
-
-def get_db():
-    return {""db"": ""base de datos""}
-```
-
-2. **Utilizar la Dependencia en los Endpoints**: Luego, puedes utilizar esta función como dependencia en tus endpoints. FastAPI automáticamente la invocará antes de que cada endpoint sea ejecutado.
+### Ejemplo de Dependencia de Tipo Personalizado
 
 ```python
-@app.get(""/endpoint1"")
-def endpoint1(db: dict = Depends(get_db)):
-    return db
-
-@app.get(""/endpoint2"")
-def endpoint2(db: dict = Depends(get_db)):
-    return db
-```
-
-En este ejemplo, `get_db` es una función que retorna un diccionario con la clave ""db"". Los endpoints `/endpoint1` y `/endpoint2` recogen este diccionario como parámetro.
-
-3. **Dependencias de Tipo**: También puedes definir dependencias que retornen un tipo específico, lo que te permite usar el tipo en los endpoints.
-
-```python
-from typing import Optional
+from typing import List
 from fastapi import FastAPI, Depends
 
 app = FastAPI()
 
-def get_db(db: dict = Depends()):
-    return db
+def get_items() -> List[str]:
+    return [""item1"", ""item2"", ""item3""]
 
-@app.get(""/endpoint1"")
-def endpoint1(db: dict = Depends()):
-    return db
+def get_items_with_type(item_type: str) -> List[str]:
+    return [f""{item_type}_{i}"" for i in range(3)]
 
-@app.get(""/endpoint2"")
-def endpoint2(db: dict = Depends()):
-    return db
+# Dependencia que devuelve una lista de strings
+items = Depends(get_items)
+
+# Dependencia que devuelve una lista de strings con un tipo específico
+items_with_type = Depends(get_items_with_type)
+
+@app.get(""/items/"")
+async def read_items(items: List[str] = items):
+    return {""items"": items}
+
+@app.get(""/items_with_type/"")
+async def read_items_with_type(items: List[str] = items_with_type):
+    return {""items"": items}
 ```
 
-En este caso ""get_db"" es una dependencia que retorna un diccionario. Los endpoints `/endpoint1` y `/endpoint2` recogen este diccionario como parámetro.
+En este ejemplo, `items` y `items_with_type` son dependencias que devuelven una lista de strings. `items` es una dependencia de tipo simple, mientras que `items_with_type` es una dependencia de tipo personalizado que espera un parámetro `item_type`.
 
-4. **Dependencias de Tipo Personalizadas**: Si necesitas una dependencia que retorne un tipo personalizado, puedes definir una función que retorne este tipo y luego usarla como dependencia.
+Estas dependencias pueden ser reutilizadas en múltiples endpoints, asegurando que siempre se utilicen los mismos parámetros y que la lógica de validación o preparación de datos sea consistente.","Para reutilizar los mismos parámetros comunes en varios endpoints mediante dependencias de FastAPI, se pueden definir funciones de dependencia que retornen un diccionario con los parámetros comunes. Luego, se pueden pasar estos diccionarios como parámetros a las funciones de los endpoints. Esto se puede hacer de varias formas, pero una de ellas es usar la función `Depends` de FastAPI.
 
-```python
-from fastapi import FastAPI, Depends
-from typing import Optional
+Por ejemplo, si tienes una función de dependencia que define los parámetros comunes, puedes usar `Depends` en las funciones de los endpoints para que estas funciones reciban los parámetros comunes definidos en la función de dependencia. Esto permite que los parámetros comunes sean reutilizados en múltiples endpoints sin tener que repetirlos en cada función.
 
-app = FastAPI()
-
-def get_db(db: dict = Depends()):
-    return db
-
-def get_user(db: dict, user_id: int):
-    return db.get(user_id)
-
-@app.get(""/user/{user_id}"")
-def get_user_endpoint(user_id: int, db: dict = Depends(get_db)):
-    return get_user(db, user_id)
-```
-
-En este ejemplo, `get_user` es una función que retorna un usuario basado en el `user_id`. Los endpoints `/user/{user_id}` recogen este usuario como parámetro.
-
-Estas técnicas de reutilización de parámetros en FastAPI son muy útiles para mantener el código limpio y reutilizable. Las dependencias también pueden ser usadas para manejar la autenticación, la persistencia de datos, o cualquier otra tarea que necesites realizar antes de ejecutar un endpoint.","Para reutilizar los mismos parámetros comunes en varios endpoints mediante dependencias de FastAPI, se puede utilizar la función `Depends` que se le pasa como parámetro a la función de endpoint. Esto permite que los parámetros comunes sean utilizados en múltiples rutas sin tener que repetirlos en cada una de ellas. [2]",[1] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00120 | https://fastapi.tiangolo.com/tutorial/response-model/ || [2] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00173 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [3] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00168 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00041 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00128 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00100 | https://fastapi.tiangolo.com/tutorial/response-model/ || [8] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00021 | https://fastapi.tiangolo.com/tutorial/query-params/,fastapi,,,,,,,,,
+Este enfoque se describe en el fragmento [1], donde se explica cómo usar `Depends` en las funciones de los endpoints para que reciban los parámetros definidos en una función de dependencia.",[1] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00185 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [2] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00031 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00120 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00173 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [5] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00168 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [6] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00188 | https://fastapi.tiangolo.com/fastapi-cli/ || [7] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00162 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [8] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00164 | https://fastapi.tiangolo.com/tutorial/dependencies/,fastapi,,,,,,,,,
 F09,dev,fastapi,aplicada,¿Cómo puede una aplicación FastAPI leer su configuración desde variables de entorno?,"Usando Pydantic Settings: se instala pydantic-settings, se crea una clase que hereda de BaseSettings con los campos de configuración y sus tipos o valores por defecto, y se instancia (settings = Settings()). Pydantic lee las variables de entorno sin distinguir mayúsculas y minúsculas y valida los tipos. También puede leer un archivo .env mediante model_config = SettingsConfigDict(env_file='.env').",fastapi_settings.md,fastapi,"Para que una aplicación FastAPI pueda leer su configuración desde variables de entorno, puedes utilizar la biblioteca `python-decouple`. Esta biblioteca permite cargar variables de entorno sin tener que preocuparte por la seguridad de las claves.
 
 Primero, instala la biblioteca si aún no la tienes:
@@ -250,164 +260,179 @@ DATABASE_URL = config('DATABASE_URL', default='postgres://user:password@localhos
 SECRET_KEY = config('SECRET_KEY', default='default_secret', envvar='SECRET_KEY')
 ```
 
-En este ejemplo, `DATABASE_URL` y `SECRET_KEY` son variables de entorno que FastAPI leerá automáticamente. Si no se proporcionan en el entorno, se utilizarán los valores por defecto.
+En este ejemplo, `DATABASE_URL` y `SECRET_KEY` son variables de entorno que FastAPI puede leer. Si no se proporcionan en el entorno, se usará el valor por defecto.
 
-Para usar estas variables en tu aplicación FastAPI, puedes crear un archivo de configuración, por ejemplo `settings.py`:
-
-```python
-from .base import BaseSettings
-
-class Settings(BaseSettings):
-    class Config:
-        env_file = '.env'  # Archivo de variables de entorno
-        env_prefix = 'APP_'  # Prefijo para las variables de entorno
-        case_sensitive = True
-        env_file_encoding = 'utf-8'
-
-settings = Settings()
-```
-
-Aquí, `BaseSettings` es una clase que hereda de `pydantic.BaseSettings`, que es una clase de Pydantic que permite cargar variables de entorno y usarlas como atributos de la clase.
-
-Luego, puedes acceder a estas variables en tu aplicación FastAPI:
+Para usar estas variables en tu aplicación FastAPI, puedes crear una clase que herede de `FastAPI` y configure la configuración de la aplicación:
 
 ```python
 from fastapi import FastAPI
-from .settings import settings
+from decouple import config
 
 app = FastAPI()
 
-@app.get(""/"")
-def read_root():
-    return {""message"": f""¡Hola, mundo! Configuración: {settings.DATABASE_URL}""}
+@app.on_event(""startup"")
+async def startup_event():
+    DATABASE_URL = config('DATABASE_URL', default='postgres://user:password@localhost/dbname', envvar='DATABASE_URL')
+    SECRET_KEY = config('SECRET_KEY', default='default_secret', envvar='SECRET_KEY')
+    # Aquí puedes configurar tu aplicación con estas variables
+    print(f""DATABASE_URL: {DATABASE_URL}"")
+    print(f""SECRET_KEY: {SECRET_KEY}"")
 ```
 
-En este ejemplo, `settings.DATABASE_URL` se utilizará para obtener la URL de la base de datos desde las variables de entorno.
+En este caso, `startup_event` se ejecuta automáticamente cuando la aplicación se inicia. Aquí puedes configurar tu aplicación con las variables de entorno.
 
-Recuerda que `.env` es un archivo de texto plano que contiene las variables de entorno. Por ejemplo:
+Recuerda que `config` es una función que busca las variables de entorno primero, y si no las encuentra, usa el valor por defecto. Si no proporcionas una variable de entorno, FastAPI no la encontrará y usará el valor por defecto.
 
+Además, asegúrate de que las variables de entorno estén disponibles en el entorno en el que ejecutas tu aplicación. Por ejemplo, si estás ejecutando tu aplicación en Docker, asegúrate de que las variables de entorno estén definidas en el contenedor.
+
+Si estás utilizando Docker, puedes definir las variables de entorno en el archivo `docker-compose.yml`:
+
+```yaml
+version: '3'
+services:
+  myapp:
+    image: myapp_image
+    environment:
+      - DATABASE_URL=postgres://user:password@localhost/dbname
+      - SECRET_KEY=default_secret
 ```
-DATABASE_URL=postgres://user:password@localhost/dbname
-SECRET_KEY=default_secret
-```
 
-Este archivo debe estar en el mismo directorio que tu archivo de configuración `settings.py`.
+Esto asegura que las variables de entorno estén disponibles en el contenedor de Docker.","Una aplicación FastAPI puede leer su configuración desde variables de entorno utilizando Pydantic, una biblioteca que maneja estas configuraciones desde variables de entorno con [6]. Para leer las variables de entorno, se puede crear una instancia de la clase `Settings` de Pydantic y se le pasan las variables de entorno al constructor. Esto permite que Pydantic lea las variables de entorno de manera case-insensitive y luego convierta y valide los datos. Esto se puede ver en el ejemplo proporcionado en [7]. Además, se pueden configurar diferentes contenedores con diferentes herramientas, como bases de datos, aplicaciones Python, servidores web con aplicaciones frontend React, y conectándolos entre sí a través de su red interna, todo esto utilizando imágenes pre-hechas de contenedores, como las imágenes oficiales, que se configuran con variables de entorno. Esto permite aprender sobre contenedores y Docker y reutilizar ese conocimiento con diferentes herramientas y componentes, como se describe en [8].",[1] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00200 | https://fastapi.tiangolo.com/advanced/settings/ || [2] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00201 | https://fastapi.tiangolo.com/advanced/settings/ || [3] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00000 | https://fastapi.tiangolo.com/tutorial/path-params/ || [4] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00220 | https://fastapi.tiangolo.com/advanced/settings/ || [5] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00203 | https://fastapi.tiangolo.com/advanced/settings/ || [6] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00202 | https://fastapi.tiangolo.com/advanced/settings/ || [7] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00205 | https://fastapi.tiangolo.com/advanced/settings/ || [8] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00240 | https://fastapi.tiangolo.com/deployment/docker/,fastapi,,,,,,,,,
+D01,dev,docker,directa,¿Cuál es la diferencia entre una imagen y un contenedor en Docker?,"Una imagen es un paquete con todo lo que un contenedor necesita para arrancar (archivos del sistema operativo, runtime del lenguaje, dependencias y la aplicación) y es inmutable: una vez construida no cambia. Un contenedor es un proceso que se ejecuta de forma aislada y que se crea a partir de una imagen.",docker_what_is_container.md,docker,"En Docker, una imagen y un contenedor son conceptos importantes que a menudo se confunden. Vamos a explicar cada uno de ellos:
 
-Con esta configuración, FastAPI leerá las variables de entorno desde el archivo `.env` y las utilizará en tu aplicación.","Una aplicación FastAPI puede leer su configuración desde variables de entorno utilizando la biblioteca `pydantic_settings` para manejar las configuraciones de entorno. Esto permite que las configuraciones sean leídas desde variables de entorno y luego utilizadas en la aplicación. Para usar esta funcionalidad, se puede crear una clase que herede de `BaseSettings` y definir los atributos que se desean leer desde las variables de entorno. Luego, se puede utilizar la clase `Settings` que hereda de `BaseSettings` para leer las configuraciones desde las variables de entorno. Por ejemplo, se puede crear una clase `Settings` que hereda de `BaseSettings` y definir los atributos que se desean leer desde las variables de entorno. Luego, se puede utilizar la clase `Settings` para leer las configuraciones desde las variables de entorno y utilizarlas en la aplicación. Esto se puede hacer de varias formas, como con `Depends`, `lru_cache`, o directamente en la función. [5]",[1] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00200 | https://fastapi.tiangolo.com/advanced/settings/ || [2] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00000 | https://fastapi.tiangolo.com/tutorial/path-params/ || [3] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00227 | https://fastapi.tiangolo.com/advanced/settings/ || [4] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00245 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00215 | https://fastapi.tiangolo.com/advanced/settings/ || [6] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00216 | https://fastapi.tiangolo.com/advanced/settings/ || [7] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00206 | https://fastapi.tiangolo.com/advanced/settings/ || [8] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00008 | https://fastapi.tiangolo.com/tutorial/path-params/,fastapi,,,,,,,,,
-D01,dev,docker,directa,¿Cuál es la diferencia entre una imagen y un contenedor en Docker?,"Una imagen es un paquete con todo lo que un contenedor necesita para arrancar (archivos del sistema operativo, runtime del lenguaje, dependencias y la aplicación) y es inmutable: una vez construida no cambia. Un contenedor es un proceso que se ejecuta de forma aislada y que se crea a partir de una imagen.",docker_what_is_container.md,docker,"En Docker, una imagen es como un molde o plantilla que se utiliza para crear contenedores. Es una representación estática y persistente de un sistema operativo, que incluye todo lo necesario para ejecutar un contenedor. Las imágenes Docker son fijas y no pueden ser modificadas una vez creadas. Se crean con comandos como `docker build` que toman un archivo de Dockerfile como entrada.
+1. Imagen de Docker:
+Una imagen de Docker es un archivo que contiene todo lo necesario para crear un contenedor. Es como un paquete de instalación que incluye el sistema operativo, los paquetes de software, y cualquier configuración necesaria. Una vez que se crea una imagen, no se puede modificar. Se puede crear múltiples contenedores a partir de la misma imagen.
 
-Por otro lado, un contenedor es una ejecución de una imagen Docker. Es como una instancia de la imagen en un sistema de destino. Los contenedores son autónomos y se ejecutan en el sistema operativo del host. Cada vez que se crea un contenedor, Docker ejecuta la imagen en una nueva capa de memoria y espacio de nombres de sistema. Los contenedores son livianos y se pueden crear y destruir rápidamente.
+2. Contenedor de Docker:
+Un contenedor es una ejecución de una imagen de Docker. Es como una caja de seguridad que contiene la imagen y ejecuta el sistema operativo y los paquetes de software. Cada contenedor tiene su propio espacio de nombres de sistema, memoria, archivos de estado y otros recursos. Esto permite que los contenedores sean independientes y no se afecten entre sí.
 
-En resumen, una imagen es como un molde para crear múltiples contenedores, mientras que un contenedor es una instancia de ejecución de una imagen. Las imágenes son fijas y no modificables, mientras que los contenedores son autónomos y pueden ser creados y destruidos fácilmente.","Las imágenes en Docker contienen todo lo necesario para que un contenedor funcione, incluyendo el sistema operativo, el runtime de lenguaje, las dependencias y el código del aplicación, junto con configuraciones como el comando que debe ejecutarse. Por otro lado, los contenedores son procesos aislados que ejecutan la imagen, compartiendo sus capas pero con una capa de escritura única que permite que los cambios del contenedor se guarden sin afectar la imagen original. [1]",[1] docker | What is a container? | docker_what_is_container.md | chunk_00285 | https://docs.docker.com/learn/content/what-is-a-container/ || [2] docker | What is a container? | docker_what_is_container.md | chunk_00292 | https://docs.docker.com/learn/content/what-is-a-container/ || [3] docker | Docker storage | docker_storage.md | chunk_00398 | https://docs.docker.com/engine/storage/ || [4] docker | What is a container? | docker_what_is_container.md | chunk_00290 | https://docs.docker.com/learn/content/what-is-a-container/ || [5] docker | What is a container? | docker_what_is_container.md | chunk_00294 | https://docs.docker.com/learn/content/what-is-a-container/ || [6] docker | Image layers and the build cache | docker_build_cache.md | chunk_00347 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [7] docker | What is a container? | docker_what_is_container.md | chunk_00291 | https://docs.docker.com/learn/content/what-is-a-container/ || [8] docker | What is a container? | docker_what_is_container.md | chunk_00300 | https://docs.docker.com/learn/content/what-is-a-container/,docker,,,,,,,,,
+La principal diferencia entre una imagen y un contenedor es que una imagen es una copia estática de un sistema de software, mientras que un contenedor es una ejecución de esa imagen. Una imagen de Docker se puede usar para crear múltiples contenedores, cada uno de los cuales puede tener su propio entorno de ejecución.","Las imágenes en Docker son paquetes de todo lo que necesita un contenedor para comenzar: los archivos del sistema operativo, la ejecución de lenguaje, las dependencias y el código del app, y las configuraciones como qué comando ejecutar. Las imágenes son inmutables, lo que significa que una vez construida, una imagen nunca cambia. Por otro lado, los contenedores son procesos aislados que utilizan las capas de una imagen, pero añaden una capa de escritura única para permitirles escribir en el sistema de archivos. Las imágenes contienen los archivos necesarios para que el contenedor funcione, mientras que los contenedores son los procesos que ejecutan la aplicación. [5]",[1] docker | What is a container? | docker_what_is_container.md | chunk_00285 | https://docs.docker.com/learn/content/what-is-a-container/ || [2] docker | What is a container? | docker_what_is_container.md | chunk_00290 | https://docs.docker.com/learn/content/what-is-a-container/ || [3] docker | What is a container? | docker_what_is_container.md | chunk_00292 | https://docs.docker.com/learn/content/what-is-a-container/ || [4] docker | Image layers and the build cache | docker_build_cache.md | chunk_00347 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [5] docker | Docker storage | docker_storage.md | chunk_00398 | https://docs.docker.com/engine/storage/ || [6] docker | What is a container? | docker_what_is_container.md | chunk_00294 | https://docs.docker.com/learn/content/what-is-a-container/ || [7] docker | What is a container? | docker_what_is_container.md | chunk_00291 | https://docs.docker.com/learn/content/what-is-a-container/ || [8] docker | Docker storage | docker_storage.md | chunk_00405 | https://docs.docker.com/engine/storage/,docker,,,,,,,,,
 D03,dev,docker,directa,¿Qué diferencia hay entre declarar EXPOSE en un Dockerfile y publicar un puerto con -p?,"EXPOSE solo registra en qué puerto escucha la aplicación: es documentación y no publica el puerto. Para que el puerto sea accesible desde fuera del host hay que publicarlo al ejecutar el contenedor con --publish o -p, que crea una correspondencia entre un puerto del host y un puerto del contenedor.",docker_write_dockerfile.md;docker_port_publishing.md,docker,"Ambas opciones en un Dockerfile son usadas para indicar a Docker cuáles puertos deben ser expuestos, pero hay algunas diferencias clave entre ellas:
 
 1. **EXPOSE en el Dockerfile**:
-   - `EXPOSE` es una instrucción que no crea una redireccionamiento de puertos. Es una forma de indicar al sistema operativo del host que los puertos que se mencionan en la instrucción deben ser mantenidos abiertos durante la ejecución de la imagen.
-   - No hay una redirección de puertos en el host. Los puertos que se mencionan con `EXPOSE` se mantienen abiertos para que otros servicios puedan conectarse a ellos.
-   - `EXPOSE` no afecta la redirección de puertos en el host. Para que los puertos sean redirigidos, se debe usar la opción `-p` en la línea de comandos de `docker run`.
+   - `EXPOSE` es una instrucción que se utiliza en el Dockerfile para indicar a Docker cuáles puertos el contenedor va a usar. No se establece ninguna redireccionamiento de puertos en este caso.
+   - Ejemplo: `EXPOSE 8080`
+   - Esta instrucción no tiene efecto en la ejecución del contenedor. Es solo una indicación para Docker.
 
-2. **-p en la línea de comandos de docker run**:
-   - `-p` es una opción que redirige un puerto del contenedor a un puerto en el host. Por ejemplo, `-p 8080:80` redirige el puerto 80 del contenedor a 8080 en el host.
-   - Con `-p`, Docker crea una redirección de puertos en el host. Esto significa que el host puede acceder a los puertos del contenedor a través de los puertos redirigidos en el host.
-   - `EXPOSE` no redirige los puertos. Es solo una indicación de que los puertos están disponibles en el contenedor.
+2. **-p en la opción de ejecución de Docker**:
+   - `-p` es una opción de la opción `docker run` que se utiliza para redirigir un puerto del host al puerto del contenedor. Por ejemplo, `-p 8080:80` redirige el puerto 8080 del host a 80 en el contenedor.
+   - Ejemplo: `docker run -p 8080:80 myimage`
 
-En resumen, `EXPOSE` es una forma de indicar a Docker cuáles puertos están disponibles en el contenedor, mientras que `-p` es una forma de redirigir esos puertos a puertos específicos en el host. Si no se usa `-p`, los puertos no estarán disponibles en el host y no podrán ser accedidos desde fuera del contenedor.",No encuentro información suficiente en la documentación recuperada. [1],[1] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00478 | https://docs.docker.com/engine/network/port-publishing/ || [2] docker | Networking overview | docker_networking.md | chunk_00418 | https://docs.docker.com/engine/network/ || [3] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00479 | https://docs.docker.com/engine/network/port-publishing/ || [4] docker | Networking in Compose | compose_networking.md | chunk_00523 | https://docs.docker.com/compose/how-tos/networking/ || [5] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00481 | https://docs.docker.com/engine/network/port-publishing/ || [6] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00492 | https://docs.docker.com/engine/network/port-publishing/ || [7] docker | Networking in Compose | compose_networking.md | chunk_00543 | https://docs.docker.com/compose/how-tos/networking/ || [8] docker | Bridge network driver | docker_bridge.md | chunk_00448 | https://docs.docker.com/engine/network/drivers/bridge/,docker,,,,,,,,,
-D05,dev,docker,aplicada,¿Qué ventajas tiene conectar contenedores a una red bridge definida por el usuario frente a la red bridge predeterminada?,"En una red bridge definida por el usuario los contenedores se resuelven automáticamente por nombre o alias mediante DNS, mientras que en la bridge predeterminada solo pueden comunicarse por dirección IP. Además ofrece mejor aislamiento y permite conectar y desconectar contenedores de la red sin detenerlos.",docker_bridge.md;docker_networking.md,docker,"Conectar contenedores a una red bridge definida por el usuario en lugar de la red bridge predeterminada en Docker ofrece varias ventajas, especialmente en entornos de producción y desarrollo de aplicaciones más complejos. Aquí te explico algunas de ellas:
+La principal diferencia es que `EXPOSE` no redirige ningún puerto, mientras que `-p` establece una redirección de puertos. Si no usas `-p` al ejecutar el contenedor, el puerto que has expuesto con `EXPOSE` no estará disponible desde el host.
 
-1. **Seguridad**: Puedes controlar con más precisión qué contenedores pueden acceder a qué recursos. Por ejemplo, si tienes una aplicación web y una base de datos, puedes configurar que solo la aplicación web tenga acceso a la base de datos, evitando así posibles ataques de red.
+En resumen, `EXPOSE` es una indicación de puertos que el contenedor va a usar, mientras que `-p` es una redirección que permite que el contenedor acceda a puertos del host.","La diferencia entre declarar `EXPOSE` en un Dockerfile y publicar un puerto con `-p` radica en cómo se manejan las conexiones externas a los puertos de los contenedores.
 
-2. **Isolación**: Puedes aislar contenedores de diferentes aplicaciones o servicios entre sí, lo que puede mejorar la seguridad y la eficiencia del sistema. Por ejemplo, si tienes una aplicación web y una aplicación de chat, puedes configurar que ambos contenedores tengan acceso a la misma base de datos, pero no a la misma red de chat.
+[5] Por defecto, Docker bloquea el acceso a los puertos que no han sido publicados. Cuando se declara `EXPOSE` en un Dockerfile, se indica al sistema que un puerto está disponible, pero no se realiza ninguna acción para que este puerto sea accesible desde fuera del host o desde otros contenedores en redes diferentes.
 
-3. **Eficiencia**: Puedes optimizar el uso de recursos de red. Por ejemplo, si tienes una aplicación que requiere acceso a una base de datos y otra que no, puedes configurar que la primera contenga su propia red y la segunda no, lo que puede reducir el tráfico de red y mejorar el rendimiento.
+[4] Por otro lado, cuando se utiliza el flag `-p` o `--publish`, se crea una regla de firewall en el host que mapea un puerto del contenedor a un puerto en el host. Esto permite que los puertos sean accesibles desde fuera del host y desde otros contenedores en redes diferentes.
 
-4. **Flexibilidad**: Puedes crear redes de contenedores que se comporten de manera similar a redes de red física. Esto puede ser útil para entornos de desarrollo que simulan entornos de producción.
+En resumen, `EXPOSE` solo indica que un puerto está disponible, mientras que `-p` realiza la mapeo y permite el acceso externo al puerto.",[1] docker | Networking overview | docker_networking.md | chunk_00418 | https://docs.docker.com/engine/network/ || [2] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00478 | https://docs.docker.com/engine/network/port-publishing/ || [3] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00479 | https://docs.docker.com/engine/network/port-publishing/ || [4] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00492 | https://docs.docker.com/engine/network/port-publishing/ || [5] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00481 | https://docs.docker.com/engine/network/port-publishing/ || [6] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00323 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [7] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00314 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [8] docker | Bridge network driver | docker_bridge.md | chunk_00441 | https://docs.docker.com/engine/network/drivers/bridge/,docker,,,,,,,,,
+D05,dev,docker,aplicada,¿Qué ventajas tiene conectar contenedores a una red bridge definida por el usuario frente a la red bridge predeterminada?,"En una red bridge definida por el usuario los contenedores se resuelven automáticamente por nombre o alias mediante DNS, mientras que en la bridge predeterminada solo pueden comunicarse por dirección IP. Además ofrece mejor aislamiento y permite conectar y desconectar contenedores de la red sin detenerlos.",docker_bridge.md;docker_networking.md,docker,"Conectar contenedores a una red bridge definida por el usuario en lugar de la red bridge predeterminada en Docker tiene varias ventajas, especialmente en entornos de producción o en escenarios donde se requiere un control más preciso sobre la comunicación entre contenedores. Aquí te explico algunas de estas ventajas:
 
-5. **Control de acceso**: Puedes controlar quién puede acceder a qué recursos. Por ejemplo, si tienes una aplicación que requiere acceso a una base de datos y otra que no, puedes configurar que solo la primera contenga acceso a la base de datos.
+1. **Control de Acceso**: Puedes controlar quién puede acceder a qué contenedor. Por ejemplo, si tienes un contenedor web que debe comunicarse con un contenedor de base de datos, puedes configurar la red de manera que solo el contenedor web pueda comunicarse con el contenedor de base de datos. Esto reduce el riesgo de ataques de tipo de ataque de tipo de ataque de red.
 
-6. **Seguimiento de tráfico de red**: Puedes rastrear el tráfico de red entre contenedores, lo que puede ser útil para depurar problemas de red y para entender cómo se comporta tu aplicación.
+2. **Seguridad**: La red bridge predeterminada permite que todos los contenedores en una imagen compartan la misma red. Esto puede ser útil en algunos escenarios, pero también puede ser un problema de seguridad si no estás seguro de quién puede acceder a qué. Usar una red definida por el usuario permite que cada contenedor tenga una red única y controlada, lo que puede mejorar la seguridad.
 
-7. **Seguridad de la red**: Puedes configurar que solo ciertos contenedores tengan acceso a ciertos servicios, lo que puede ayudar a prevenir ataques de red.
+3. **Isolación**: Puedes asegurar que los contenedores no se comunicen entre sí de manera accidental. Por ejemplo, si tienes un contenedor de aplicación web y un contenedor de base de datos, puedes configurar la red de manera que solo el contenedor de aplicación web pueda acceder al contenedor de base de datos, lo que puede prevenir ataques de tipo de ataque de red.
 
-Es importante tener en cuenta que la configuración de redes de contenedores puede ser compleja y requerir un conocimiento profundo de Docker y de tu entorno de desarrollo. Además, la configuración correcta puede requerir un enfoque de diseño de red cuidadoso para asegurar que tu aplicación funcione correctamente y de manera segura.","Conectar contenedores a una red bridge definida por el usuario tiene varias ventajas frente a la red bridge predeterminada. 
+4. **Eficiencia de Red**: Puedes optimizar el uso de la red. Por ejemplo, si tienes un contenedor que no necesita acceder a otros contenedores, puedes configurar la red de manera que no tenga acceso a ellos, lo que puede mejorar el rendimiento de la red.
 
-[3] User-defined bridge networks proporcionan mejor aislamiento entre contenedores. 
+5. **Facilidad de Administración**: Puedes administrar las redes de manera más organizada. Por ejemplo, puedes tener una red para los contenedores de desarrollo, otra para los contenedores de producción y otra para los contenedores de pruebas. Esto puede facilitar la administración y la gestión de tus contenedores.
 
-[6] User-defined networks permiten que solo los contenedores conectados a la misma red puedan comunicarse, lo que facilita la separación de grupos de contenedores que deben tener acceso completo entre sí, pero con acceso restringido a otros grupos.
+6. **Seguimiento de Flujo de Datos**: Puedes rastrear mejor el flujo de datos entre tus contenedores. Por ejemplo, si tienes un contenedor que recibe datos de un contenedor de red y los envía a otro contenedor, puedes configurar la red de manera que solo el contenedor de red tenga acceso a los datos, lo que puede facilitar el seguimiento y la depuración.
 
-[7] Conectando contenedores a redes definidas por el usuario, estos pueden comunicarse entre sí utilizando direcciones IP de contenedores o nombres de contenedores, lo que proporciona una configuración más flexible y escalable.
+Es importante tener en cuenta que, aunque estas ventajas existen, también hay desventajas. Por ejemplo, la configuración de una red definida por el usuario puede ser más compleja y puede requerir más tiempo para configurar y mantener. Además, si no estás seguro de cómo configurar la red, puedes crear problemas de seguridad o de funcionalidad. Por lo tanto, es importante tener una comprensión clara de las necesidades de tu entorno antes de decidir si usar una red definida por el usuario o la red bridge predeterminada.","Conectar contenedores a una red bridge definida por el usuario tiene varias ventajas frente a la red bridge predeterminada. 
 
-[4] Las redes definidas por el usuario proporcionan una red con aislamiento configurable, lo que permite crear redes para grupos de contenedores con diferentes requisitos de red.
+[1] Los contenedores conectados a una red bridge definida por el usuario pueden resolver a otros contenedores por nombre o alias, mientras que los contenedores conectados a la red bridge predeterminada solo pueden hacerlo por IP. 
 
-[1] Las redes definidas por el usuario permiten que los contenedores se conecten y desconecten de la red en tiempo real, lo que facilita la gestión y la configuración de las redes.
+[2] Se pueden crear redes de usuario definidas, permitiendo que diferentes grupos de aplicaciones tengan requisitos de red diferentes. 
 
-[2] Las redes definidas por el usuario pueden configurarse y gestionarse utilizando `docker network create`, lo que permite crear redes separadas para diferentes grupos de aplicaciones con diferentes requisitos de red.
+[3] Las redes de usuario definidas proporcionan una red escalaable y configurable, donde solo los contenedores conectados a la red pueden comunicarse entre sí. 
 
-[5] Las redes definidas por el usuario permiten que los contenedores compartan variables de entorno, lo que facilita la comunicación entre contenedores que están conectados a la misma red.
+[4] Las redes de usuario definidas proporcionan una mejor isla de seguridad, ya que los contenedores sin una red especificada se conectan por defecto a la red bridge predeterminada, lo que puede ser un riesgo si no se controla adecuadamente. 
 
-[8] Al no estar vinculados por defecto a la red predeterminada, los contenedores pueden ser manejados y configurados de manera independiente, lo que puede ser útil para aplicaciones complejas o para grupos de contenedores que deben mantener acceso restringido entre sí.",[1] docker | Bridge network driver | docker_bridge.md | chunk_00436 | https://docs.docker.com/engine/network/drivers/bridge/ || [2] docker | Bridge network driver | docker_bridge.md | chunk_00469 | https://docs.docker.com/engine/network/drivers/bridge/ || [3] docker | Bridge network driver | docker_bridge.md | chunk_00435 | https://docs.docker.com/engine/network/drivers/bridge/ || [4] docker | Bridge network driver | docker_bridge.md | chunk_00434 | https://docs.docker.com/engine/network/drivers/bridge/ || [5] docker | Bridge network driver | docker_bridge.md | chunk_00439 | https://docs.docker.com/engine/network/drivers/bridge/ || [6] docker | Bridge network driver | docker_bridge.md | chunk_00438 | https://docs.docker.com/engine/network/drivers/bridge/ || [7] docker | Networking overview | docker_networking.md | chunk_00410 | https://docs.docker.com/engine/network/ || [8] docker | Bridge network driver | docker_bridge.md | chunk_00437 | https://docs.docker.com/engine/network/drivers/bridge/,docker,,,,,,,,,
-D07,dev,docker,directa,¿Qué se define en el archivo de Docker Compose y qué hacen los comandos docker compose up y docker compose down?,"El archivo Compose (por defecto compose.yaml o compose.yml) define los servicios de la aplicación y los recursos que usan, como redes y volúmenes. docker compose up inicia todos los servicios definidos en el archivo y docker compose down detiene y elimina los servicios en ejecución.",compose_application_model.md,docker,"En el archivo de Docker Compose se definen configuraciones para varios contenedores Docker. Estas configuraciones incluyen información sobre qué imágenes de Docker usar, qué rutas de trabajo, qué dependencias tienen, y cómo deben conectarse entre sí. Los archivos de Docker Compose suelen ser más legibles y manejables que los comandos `docker run` repetidos, especialmente cuando se manejan múltiples contenedores.
+[5] Las redes de usuario definidas permiten que los contenedores se conecten y desconecten de la red de usuario definida en tiempo real, lo que puede ser útil para cambiar las opciones de red de un contenedor sin necesidad de reiniciar el contenedor. 
 
-Los comandos `docker compose up` y `docker compose down` son parte de la serie de comandos de Docker Compose. Estos comandos son muy útiles para manejar contenedores Docker de manera más eficiente y eficaz.
+[6] Las redes de usuario definidas proporcionan una resolución de DNS automática entre los contenedores, lo que facilita la comunicación entre contenedores que utilizan nombres o alias en lugar de direcciones IP. 
 
-- `docker compose up`: Este comando inicia los contenedores definidos en el archivo de Docker Compose. Si los contenedores ya están en ejecución, este comando simplemente los reinicia. Si no se especifica una imagen, Docker Compose buscará la imagen más reciente de la configuración definida en el archivo de Docker Compose. Si no se especifica una rama, Docker Compose buscará la rama más reciente de la configuración definida en el archivo de Docker Compose. Si no se especifica una rama, Docker Compose buscará la rama más reciente de la configuración definida en el archivo de Docker Compose.
+[7] Las redes de usuario definidas permiten que los contenedores se conecten y desconecten de la red de usuario definida en tiempo real, lo que puede ser útil para cambiar las opciones de red de un contenedor sin necesidad de reiniciar el contenedor. 
 
-- `docker compose down`: Este comando detiene y elimina los contenedores definidos en el archivo de Docker Compose. Si los contenedores están en ejecución, `docker compose down` los detendrá antes de eliminarlos. Si no se especifica una rama, Docker Compose buscará la rama más reciente de la configuración definida en el archivo de Docker Compose. Si no se especifica una rama, Docker Compose buscará la rama más reciente de la configuración definida en el archivo de Docker Compose.
+[8] Las redes de usuario definidas proporcionan una mejor isla de seguridad, ya que los contenedores sin una red especificada se conectan por defecto a la red bridge predeterminada, lo que puede ser un riesgo si no se controla adecuadamente.",[1] docker | Bridge network driver | docker_bridge.md | chunk_00435 | https://docs.docker.com/engine/network/drivers/bridge/ || [2] docker | Bridge network driver | docker_bridge.md | chunk_00439 | https://docs.docker.com/engine/network/drivers/bridge/ || [3] docker | Bridge network driver | docker_bridge.md | chunk_00449 | https://docs.docker.com/engine/network/drivers/bridge/ || [4] docker | Bridge network driver | docker_bridge.md | chunk_00434 | https://docs.docker.com/engine/network/drivers/bridge/ || [5] docker | Bridge network driver | docker_bridge.md | chunk_00436 | https://docs.docker.com/engine/network/drivers/bridge/ || [6] docker | Bridge network driver | docker_bridge.md | chunk_00438 | https://docs.docker.com/engine/network/drivers/bridge/ || [7] docker | Networking overview | docker_networking.md | chunk_00410 | https://docs.docker.com/engine/network/ || [8] docker | Bridge network driver | docker_bridge.md | chunk_00437 | https://docs.docker.com/engine/network/drivers/bridge/,docker,,,,,,,,,
+D07,dev,docker,directa,¿Qué se define en el archivo de Docker Compose y qué hacen los comandos docker compose up y docker compose down?,"El archivo Compose (por defecto compose.yaml o compose.yml) define los servicios de la aplicación y los recursos que usan, como redes y volúmenes. docker compose up inicia todos los servicios definidos en el archivo y docker compose down detiene y elimina los servicios en ejecución.",compose_application_model.md,docker,"En el archivo de Docker Compose se definen configuraciones para varios contenedores Docker. Estas configuraciones incluyen información sobre qué imágenes de Docker usar, qué rutas de trabajo ejecutar en cada contenedor, y cómo los contenedores deben comunicarse entre sí. Los archivos de Docker Compose suelen tener un formato YAML o JSON.
 
-Es importante notar que estos comandos no afectan a los archivos de configuración de Docker Compose. Para que los cambios en el archivo de Docker Compose sean aplicados, se deben ejecutar los comandos `docker compose up` o `docker compose down` nuevamente.","El archivo de Docker Compose define la configuración de los servicios, los volumenes, los puertos y otros detalles necesarios para crear y gestionar aplicaciones multi-contenedor. [1]
+Los comandos `docker compose up` y `docker compose down` son parte de la serie de comandos de Docker Compose. Estos comandos son muy útiles para manejar contenedores Docker de manera más sencilla y eficiente.
 
-Los comandos `docker compose up` y `docker compose down` son utilizados para iniciar y detener la aplicación definida en el archivo `compose.yaml`. `docker compose up` inicia los servicios definidos en el archivo, mientras que `docker compose down` detiene y elimina los servicios. [7]",[1] docker | Define and manage volumes in Docker Compose | compose_volumes.md | chunk_00562 | https://docs.docker.com/reference/compose-file/volumes/ || [2] docker | Image layers and the build cache | docker_build_cache.md | chunk_00362 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [3] docker | Keep data with volumes and bind mounts | docker_persisting_data.md | chunk_00393 | https://docs.docker.com/learn/content/keep-data-with-volumes-and-bind-mounts/ || [4] docker | Image layers and the build cache | docker_build_cache.md | chunk_00351 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [5] docker | Bridge network driver | docker_bridge.md | chunk_00450 | https://docs.docker.com/engine/network/drivers/bridge/ || [6] docker | Image layers and the build cache | docker_build_cache.md | chunk_00359 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [7] docker | How Compose works | compose_application_model.md | chunk_00511 | https://docs.docker.com/compose/intro/compose-application-model/ || [8] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00316 | https://docs.docker.com/learn/content/write-your-first-dockerfile/,docker,,,,,,,,,
-I01,dev,integrated,integrada,¿Qué contiene el Dockerfile que recomienda la documentación de FastAPI para una aplicación en app/main.py y con qué comandos se construye y ejecuta el contenedor?,"Parte de una imagen oficial de Python (FROM python:3.14), fija WORKDIR /code, copia requirements.txt, instala las dependencias con pip install --no-cache-dir --upgrade -r /code/requirements.txt, copia ./app a /code/app y define CMD ['fastapi', 'run', 'app/main.py', '--port', '80'] en forma exec. Se construye con docker build -t myimage . y se ejecuta con docker run -d --name mycontainer -p 80:80 myimage.",fastapi_docker.md,fastapi;docker,"El Dockerfile para una aplicación FastAPI que se ejecuta en `app/main.py` generalmente incluirá las siguientes partes:
+- `docker compose up`: Este comando inicia los contenedores definidos en el archivo de Docker Compose. Si los contenedores ya están en ejecución, este comando simplemente los reinicia. Si no se especifica una imagen, Docker Compose buscará las imágenes necesarias en el host. Si no se especifica una rama o versión, Docker Compose buscará la rama o versión más reciente de la imagen.
 
-1. **Base Image**: Selecciona una imagen de base que contenga los componentes necesarios para ejecutar la aplicación. Por ejemplo, `python:3.8-slim` si usas Python 3.8.
+- `docker compose down`: Este comando detiene y elimina los contenedores definidos en el archivo de Docker Compose. Si los contenedores están en ejecución, `docker compose down` los detendrá antes de eliminarlos. Si no se especifica una rama o versión, Docker Compose eliminará las imágenes más recientes de las ramas o versiones que estén en uso por los contenedores.
 
-2. **COPY o ADD**: Copia los archivos de tu aplicación en el contenedor. Si tu aplicación está en un directorio llamado `app`, podrías usar `COPY app /app` o `ADD app /app`.
+Es importante tener en cuenta que estos comandos no afectan a los datos de los contenedores, solo a los contenedores mismos. Para eliminar los datos de los contenedores, se recomienda usar `docker compose down --remove-orphans`. Esto eliminará cualquier contenedor que no esté definido en el archivo de Docker Compose.","El archivo de Docker Compose define los servicios de la aplicación, sus configuraciones, volúmenes, configuraciones externas, secretos y redes. Los volúmenes, configuraciones externas, secretos y redes se definen en el archivo de Docker Compose para que Docker Compose pueda gestionarlos correctamente.
 
-3. **WORKDIR**: Establece el directorio de trabajo dentro del contenedor. Por ejemplo, `WORKDIR /app`.
+Los comandos `docker compose up` y `docker compose down` son parte de la gestión de la aplicación definida en el archivo de Docker Compose. `docker compose up` inicia los servicios definidos en el archivo de Docker Compose, crea los volúmenes necesarios, crea las redes necesarias y inyecta las configuraciones y secretos necesarios en los servicios. Por otro lado, `docker compose down` detiene y elimina los servicios definidos en el archivo de Docker Compose. [4] [7]",[1] docker | Define and manage volumes in Docker Compose | compose_volumes.md | chunk_00562 | https://docs.docker.com/reference/compose-file/volumes/ || [2] docker | How Compose works | compose_application_model.md | chunk_00511 | https://docs.docker.com/compose/intro/compose-application-model/ || [3] docker | How Compose works | compose_application_model.md | chunk_00512 | https://docs.docker.com/compose/intro/compose-application-model/ || [4] docker | Networking in Compose | compose_networking.md | chunk_00521 | https://docs.docker.com/compose/how-tos/networking/ || [5] docker | Networking in Compose | compose_networking.md | chunk_00520 | https://docs.docker.com/compose/how-tos/networking/ || [6] docker | How Compose works | compose_application_model.md | chunk_00503 | https://docs.docker.com/compose/intro/compose-application-model/ || [7] docker | How Compose works | compose_application_model.md | chunk_00515 | https://docs.docker.com/compose/intro/compose-application-model/ || [8] docker | How Compose works | compose_application_model.md | chunk_00509 | https://docs.docker.com/compose/intro/compose-application-model/,docker,,,,,,,,,
+I01,dev,integrated,integrada,¿Qué contiene el Dockerfile que recomienda la documentación de FastAPI para una aplicación en app/main.py y con qué comandos se construye y ejecuta el contenedor?,"Parte de una imagen oficial de Python (FROM python:3.14), fija WORKDIR /code, copia requirements.txt, instala las dependencias con pip install --no-cache-dir --upgrade -r /code/requirements.txt, copia ./app a /code/app y define CMD ['fastapi', 'run', 'app/main.py', '--port', '80'] en forma exec. Se construye con docker build -t myimage . y se ejecuta con docker run -d --name mycontainer -p 80:80 myimage.",fastapi_docker.md,fastapi;docker,"El Dockerfile para una aplicación FastAPI en una aplicación de Flask (ya que FastAPI es una extensión de Flask) generalmente incluirá las siguientes partes:
 
-4. **ENV**: Define las variables de entorno necesarias para tu aplicación. Por ejemplo, `ENV FLASK_APP main.py` si estás usando Flask (FastAPI es una extensión de Flask).
+1. **Base Image**: Selecciona una imagen de base que contenga los componentes necesarios para ejecutar la aplicación. Por ejemplo, `python:3.8-slim-buster`.
 
-5. **RUN**: Ejecuta comandos para instalar dependencias o configurar el entorno. Por ejemplo, `RUN pip install -r requirements.txt`.
+2. **Copiar el código de la aplicación**: Copia el archivo `app/main.py` y cualquier otro archivo de configuración o dependencias necesarias en la imagen.
 
-6. **CMD**: Define el comando que se ejecutará al iniciar el contenedor. Por ejemplo, `CMD [""flask"", ""run"", ""--host=0.0.0.0""]` si estás usando Flask.
+3. **Instalar dependencias**: Si la aplicación depende de bibliotecas o paquetes Python, se instalarán en la imagen. Esto se hace con `RUN pip install -r requirements.txt` si el archivo `requirements.txt` existe.
+
+4. **Copiar configuraciones**: Si hay archivos de configuración o archivos de entorno que se necesiten en la imagen, se copiarán.
+
+5. **Configurar la aplicación**: Si la aplicación requiere configuración adicional, como el puerto en el que se debe escuchar, se hará en este punto.
+
+6. **Definir la entrada de la aplicación**: Se define el punto de entrada de la aplicación, que en este caso sería `uvicorn app.main:app --reload`.
 
 El Dockerfile podría verse así:
 
 ```Dockerfile
 # Base Image
-FROM python:3.8-slim
+FROM python:3.8-slim-buster
 
-# Working Directory
-WORKDIR /app
-
-# Copy application files
+# Copiar el código de la aplicación
 COPY app /app
 
-# Install dependencies
+# Instalar dependencias
 RUN pip install -r requirements.txt
 
-# Command to run the application
-CMD [""flask"", ""run"", ""--host=0.0.0.0""]
+# Configurar la aplicación
+ENV PORT 8000
+ENV HOST 0.0.0.0
+
+# Definir la entrada de la aplicación
+CMD [""uvicorn"", ""app.main:app"", ""--host"", ""0.0.0.0"", ""--port"", ""8000"", ""--reload""]
 ```
 
-Para construir el contenedor, se usa el comando `docker build` seguido del nombre o la dirección IP del contenedor. Por ejemplo:
+Para construir y ejecutar el contenedor, se usarían los siguientes comandos:
 
+### Construir el contenedor:
 ```bash
 docker build -t my-fastapi-app .
 ```
+Este comando construirá una imagen Docker con el nombre `my-fastapi-app` a partir del Dockerfile que se encuentra en el directorio actual (`.`).
 
-Este comando construirá una imagen de Docker con el nombre `my-fastapi-app` a partir del Dockerfile en el directorio actual (`.`).
-
-Para ejecutar el contenedor, se usa el comando `docker run`:
-
+### Ejecutar el contenedor:
 ```bash
-docker run -p 8000:5000 my-fastapi-app
+docker run -d -p 8000:8000 my-fastapi-app
+```
+Este comando ejecutará el contenedor con el nombre `my-fastapi-app`, escuchando en el puerto 8000 del host. El parámetro `-p` redirige el puerto 8000 del contenedor al puerto 8000 del host.
+
+Si la aplicación necesita configuración adicional, como la configuración de un archivo de configuración o la configuración de un archivo de entorno, se pueden agregar más líneas al Dockerfile para copiar estos archivos y configurar la aplicación.
+
+Por ejemplo, si tienes un archivo de configuración llamado `config.ini`, puedes agregarlo al Dockerfile de la siguiente manera:
+
+```Dockerfile
+# Copiar el archivo de configuración
+COPY config.ini /app/
 ```
 
-Aquí, `-p 8000:5000` redirige el puerto 5000 de la aplicación dentro del contenedor al puerto 8000 del host. Asegúrate de que el puerto 8000 esté disponible en tu sistema.
+Y en el `CMD`, puedes incluir la configuración del archivo de configuración:
 
-Si estás usando FastAPI directamente (sin Flask), el `CMD` podría ser algo como `CMD [""uvicorn"", ""app.main:app"", ""--host"", ""0.0.0.0"", ""--port"", ""8000""]`.
+```Dockerfile
+CMD [""uvicorn"", ""app.main:app"", ""--host"", ""0.0.0.0"", ""--port"", ""8000"", ""--reload"", ""--config"", ""/app/config.ini""]
+```
 
-Recuerda que `app/main.py` debe estar en el directorio `app` dentro de tu aplicación. Si no es así, ajusta el Dockerfile para que copie los archivos correctamente.","El Dockerfile que recomienda la documentación de FastAPI para una aplicación en `app/main.py` tiene las siguientes líneas:
+Esto asegura que la configuración del archivo de configuración se use cuando la aplicación se inicie.","El Dockerfile que recomienda la documentación de FastAPI para una aplicación en `app/main.py` contiene las siguientes líneas:
 
 ```
 FROM python:3.14
@@ -418,58 +443,50 @@ COPY ./requirements.txt /code/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-COPY ./main.py /code/
-CMD [""fastapi"", ""run"", ""main.py"", ""--port"", ""80""]
+COPY ./app /code/app
+
+COPY ./main.py /code/app
+
+CMD [""fastapi"", ""run"", ""app/main.py"", ""--port"", ""80""]
 ```
 
-[3]
-
-Para construir y ejecutar el contenedor, se utilizan los siguientes comandos:
+Para construir y ejecutar el contenedor, se utilizarían los siguientes comandos:
 
 ```
-$ docker build -t my-fastapi-app .
-$ docker run -p 80:80 my-fastapi-app
+docker build -t my-fastapi-app .
+docker run -p 80:80 my-fastapi-app
 ```
 
-[3]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00206 | https://fastapi.tiangolo.com/advanced/settings/ || [3] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00260 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00259 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00188 | https://fastapi.tiangolo.com/fastapi-cli/ || [6] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00305 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [7] docker | Keep data with volumes and bind mounts | docker_persisting_data.md | chunk_00372 | https://docs.docker.com/learn/content/keep-data-with-volumes-and-bind-mounts/ || [8] docker | Image layers and the build cache | docker_build_cache.md | chunk_00332 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [9] docker | How Compose works | compose_application_model.md | chunk_00504 | https://docs.docker.com/compose/intro/compose-application-model/ || [10] docker | How Compose works | compose_application_model.md | chunk_00517 | https://docs.docker.com/compose/intro/compose-application-model/,docker;fastapi,,,,,,,,,
-I03,dev,integrated,integrada,"Si una API FastAPI se ejecuta en un contenedor con fastapi run en el puerto 80 y se lanza con -p 8080:80, ¿cómo se accede a ella desde el host y por qué no se usa fastapi dev dentro del contenedor?","-p 8080:80 crea una correspondencia entre el puerto 8080 del host y el puerto 80 del contenedor, de modo que la API se alcanza desde el host por el puerto 8080. fastapi run escucha en 0.0.0.0 y está pensado para producción, mientras que fastapi dev escucha en 127.0.0.1, la dirección para que la máquina se comunique solo consigo misma, y activa la recarga automática.",docker_port_publishing.md;fastapi_cli.md;fastapi_docker.md,fastapi;docker,"Cuando ejecutas una aplicación FastAPI con `fastapi run` en un contenedor Docker y usas la opción `-p 8080:80` para redirigir el puerto 80 del contenedor al puerto 8080 del host, puedes acceder a la API desde el host en la dirección `http://localhost:8080`.
+[1]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00259 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00245 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00252 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00194 | https://fastapi.tiangolo.com/fastapi-cli/ || [6] docker | Keep data with volumes and bind mounts | docker_persisting_data.md | chunk_00372 | https://docs.docker.com/learn/content/keep-data-with-volumes-and-bind-mounts/ || [7] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00305 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [8] docker | Image layers and the build cache | docker_build_cache.md | chunk_00332 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [9] docker | How Compose works | compose_application_model.md | chunk_00504 | https://docs.docker.com/compose/intro/compose-application-model/ || [10] docker | How Compose works | compose_application_model.md | chunk_00517 | https://docs.docker.com/compose/intro/compose-application-model/,docker;fastapi,,,,,,,,,
+I03,dev,integrated,integrada,"Si una API FastAPI se ejecuta en un contenedor con fastapi run en el puerto 80 y se lanza con -p 8080:80, ¿cómo se accede a ella desde el host y por qué no se usa fastapi dev dentro del contenedor?","-p 8080:80 crea una correspondencia entre el puerto 8080 del host y el puerto 80 del contenedor, de modo que la API se alcanza desde el host por el puerto 8080. fastapi run escucha en 0.0.0.0 y está pensado para producción, mientras que fastapi dev escucha en 127.0.0.1, la dirección para que la máquina se comunique solo consigo misma, y activa la recarga automática.",docker_port_publishing.md;fastapi_cli.md;fastapi_docker.md,fastapi;docker,"Cuando ejecutas una aplicación FastAPI con `fastapi run` en un contenedor Docker y usas la opción `-p 8080:80` para redirigir el puerto 80 del contenedor al puerto 8080 del host, puedes acceder a la API desde el host utilizando el puerto 8080.
 
-### Acceso a la API desde el host
+### Acceso a la API desde el Host
 
-Para acceder a la API desde el host, necesitas usar la dirección `http://localhost:8080` en tu navegador o en una herramienta de prueba de API como Postman. Esto es porque Docker redirige el puerto 80 del contenedor a 8080 del host, por lo que la aplicación está escuchando en el puerto 8080 del host.
+Para acceder a la API desde el host, debes usar el puerto 8080 en lugar del puerto 80 que se usa internamente en el contenedor. Por ejemplo, si tu API está en un contenedor llamado `myapi`, puedes acceder a ella desde el host usando la siguiente URL:
+
+```
+http://localhost:8080/
+```
 
 ### Por qué no se usa `fastapi dev` dentro del contenedor
 
-`fastapi dev` es una opción para iniciar una aplicación FastAPI en modo de desarrollo local, pero no es adecuado para ejecutar una aplicación en producción dentro de un contenedor Docker. Aquí están los motivos:
+`fastapi run` y `fastapi dev` son dos formas diferentes de ejecutar una aplicación FastAPI en un contenedor Docker.
 
-1. **Seguridad**: `fastapi dev` no redirige el puerto al host. Esto significa que la aplicación solo está disponible en el host local del contenedor, no desde el host externo. Para una aplicación en producción, necesitas que la aplicación esté disponible en el host externo.
+- **`fastapi run`**: Este comando ejecuta la aplicación en modo de desarrollo, pero no redirige el puerto. Por lo tanto, la aplicación solo está disponible en el puerto 80 del contenedor y no desde el host. Para acceder a la API desde el host, necesitarías usar una opción de redirigir de puerto como `-p 8080:80`.
 
-2. **Seguimiento de cambios**: `fastapi dev` no es adecuado para seguir los cambios en tiempo real. Si estás trabajando en un proyecto de producción, probablemente querrás seguir los cambios en tiempo real para evitar que la aplicación se bloquee mientras se reinicia.
+- **`fastapi dev`**: Este comando ejecuta la aplicación en modo de desarrollo y redirige automáticamente el puerto 8000 del contenedor al puerto 8000 del host. Esto significa que puedes acceder a la API desde el host usando `http://localhost:8000/`, sin necesidad de usar una opción de redirigir de puerto.
 
-3. **Seguridad de red**: `fastapi dev` no usa SSL por defecto, lo que puede ser un problema si estás trabajando en una aplicación que requiere una conexión segura.
+### Resumen
 
-4. **Optimización**: `fastapi dev` no optimiza la aplicación para producción. Esto significa que no está optimizada para manejar múltiples conexiones simultáneas y no está preparada para manejar el tráfico de producción.
+- **`fastapi run`**: Ejecuta la aplicación en modo de desarrollo en el puerto 80 del contenedor. Para acceder desde el host, necesitas usar una opción de redirigir de puerto como `-p 8080:80`.
+- **`fastapi dev`**: Ejecuta la aplicación en modo de desarrollo y redirige automáticamente el puerto 80 del contenedor al puerto 80 del host. Para acceder desde el host, puedes usar `http://localhost:8000/`.
 
-### Alternativas para desarrollo en producción
+En resumen, si quieres que la aplicación esté disponible desde el host sin usar una opción de redirigir de puerto, usarías `fastapi dev`. Si necesitas usar una opción de redirigir de puerto para que la aplicación esté disponible desde el host, usarías `fastapi run` con una opción de redirigir de puerto como `-p 8080:80`.","Una API FastAPI ejecutada en un contenedor con `fastapi run` en el puerto 80 y lanzada con `-p 8080:80` se accede desde el host a través de la dirección `http://127.0.0.1:8080` o directamente a `http://192.0.2.100:80`, dependiendo de la configuración de la red del host y si el host tiene una ruta a la red `192.0.2.0/24` dentro del host Docker.
 
-Para el desarrollo en producción, puedes usar `uvicorn` para iniciar la aplicación en modo de producción. Aquí tienes cómo hacerlo:
+No se usa `fastapi dev` dentro del contenedor porque `fastapi dev` es un comando de desarrollo que se usa para ejecutar la aplicación en modo de desarrollo local, lo que no es necesario si la aplicación ya está en un contenedor y se está ejecutando en un puerto específico. Además, `fastapi dev` no permite especificar un puerto específico para la aplicación, por lo que no se puede usar en este caso. [4]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00234 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00256 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00271 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00196 | https://fastapi.tiangolo.com/fastapi-cli/ || [5] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00188 | https://fastapi.tiangolo.com/fastapi-cli/ || [6] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00487 | https://docs.docker.com/engine/network/port-publishing/ || [7] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00480 | https://docs.docker.com/engine/network/port-publishing/ || [8] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00495 | https://docs.docker.com/engine/network/port-publishing/ || [9] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00486 | https://docs.docker.com/engine/network/port-publishing/ || [10] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00496 | https://docs.docker.com/engine/network/port-publishing/,docker;fastapi,,,,,,,,,
+I05,dev,integrated,integrada,"¿Cómo se pasa una configuración, como la URL de la base de datos, desde Docker Compose a una aplicación FastAPI?","En Compose se define la variable para el servicio con el atributo environment o con env_file. En FastAPI se declara una clase que hereda de BaseSettings (pydantic-settings) con un campo para ese valor; al instanciarla, Pydantic lee la variable de entorno del contenedor sin distinguir mayúsculas y minúsculas y valida su tipo.",compose_env_vars.md;fastapi_settings.md,fastapi;docker,"Para pasar la configuración de una aplicación FastAPI a través de Docker Compose, puedes utilizar variables de entorno. Esto permite que la configuración de tu aplicación (como la URL de la base de datos) sea configurable y no esté inmersa directamente en el código fuente de tu aplicación.
 
-```bash
-uvicorn miapp:app --host 0.0.0.0 --port 8080 --reload
-```
-
-- `miapp`: Es el nombre de tu archivo de aplicación (generalmente `main.py`).
-- `app`: Es el nombre de la función de la aplicación que contiene la ruta principal.
-- `--host 0.0.0.0`: Permite que la aplicación escuche en todos los interfaces de red, incluyendo el host externo.
-- `--port 8080`: Es el puerto que deseas que escuche la aplicación.
-- `--reload`: Activa el modo de desarrollo, que reinicia la aplicación cada vez que se cambia el código.
-
-Después de iniciar la aplicación con `uvicorn`, puedes acceder a ella desde el host en `http://localhost:8080`.
-
-En resumen, `fastapi dev` no es adecuado para producción, pero `uvicorn` es una buena opción para iniciar la aplicación en modo de desarrollo y producción.","Una API FastAPI ejecutada en un contenedor con `fastapi run` en el puerto 80 y lanzada con `-p 8080:80` se accede desde el host accediendo a la dirección `http://127.0.0.1:8080` o directamente a `http://192.0.2.100:80`, dependiendo de la configuración de la IP del host. No se usa `fastapi dev` dentro del contenedor porque `fastapi run` ejecuta la aplicación en modo producción, lo que implica deshabilitar el auto-reinicio y escuchar en la dirección IP `0.0.0.0`, lo que permite que la aplicación esté accesible públicamente. [4]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00199 | https://fastapi.tiangolo.com/fastapi-cli/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00127 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00215 | https://fastapi.tiangolo.com/advanced/settings/ || [5] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00227 | https://fastapi.tiangolo.com/advanced/settings/ || [6] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00487 | https://docs.docker.com/engine/network/port-publishing/ || [7] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00323 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [8] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00480 | https://docs.docker.com/engine/network/port-publishing/ || [9] docker | Image layers and the build cache | docker_build_cache.md | chunk_00364 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ || [10] docker | Bridge network driver | docker_bridge.md | chunk_00466 | https://docs.docker.com/engine/network/drivers/bridge/,docker;fastapi,,,,,,,,,
-I05,dev,integrated,integrada,"¿Cómo se pasa una configuración, como la URL de la base de datos, desde Docker Compose a una aplicación FastAPI?","En Compose se define la variable para el servicio con el atributo environment o con env_file. En FastAPI se declara una clase que hereda de BaseSettings (pydantic-settings) con un campo para ese valor; al instanciarla, Pydantic lee la variable de entorno del contenedor sin distinguir mayúsculas y minúsculas y valida su tipo.",compose_env_vars.md;fastapi_settings.md,fastapi;docker,"Para pasar la configuración de una aplicación FastAPI a través de Docker Compose, puedes utilizar variables de entorno. Esto es útil para mantener la configuración separada de tu código fuente y facilita su configuración en diferentes entornos de desarrollo y producción.
-
-### Paso 1: Configurar variables de entorno en Docker Compose
+### Paso 1: Configuración de Docker Compose
 
 En tu archivo `docker-compose.yml`, puedes definir variables de entorno que luego podrás usar en tu aplicación FastAPI. Aquí tienes un ejemplo de cómo hacerlo:
 
@@ -477,93 +494,58 @@ En tu archivo `docker-compose.yml`, puedes definir variables de entorno que lueg
 version: '3'
 services:
   app:
-    build: .
+    image: your-fastapi-image
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/mydb
     ports:
       - ""8000:8000""
 ```
 
-En este ejemplo, `DATABASE_URL` es una variable de entorno que se establece con la URL de la base de datos PostgreSQL. La URL de la base de datos se define como un parámetro de construcción en tu archivo `docker-compose.yml`.
+En este ejemplo, `DATABASE_URL` es una variable de entorno que se establece con la URL de la base de datos PostgreSQL.
 
-### Paso 2: Acceder a las variables de entorno en FastAPI
+### Paso 2: Acceso a la variable de entorno en FastAPI
 
-En tu aplicación FastAPI, puedes acceder a estas variables de entorno utilizando el módulo `os` en Python. Aquí tienes un ejemplo de cómo hacerlo:
+En tu aplicación FastAPI, puedes acceder a esta variable de entorno para configurar tu aplicación. Aquí tienes un ejemplo de cómo hacerlo:
 
 ```python
 from fastapi import FastAPI
-import os
+from pydantic import BaseSettings
+
+class Settings(BaseSettings):
+    database_url: str = ""postgresql://user:password@db:5432/mydb""
+
+settings = Settings()
 
 app = FastAPI()
 
+@app.on_event(""startup"")
+async def startup():
+    app.state.database_url = settings.database_url
+
 @app.get(""/"")
-def read_root():
-    database_url = os.getenv('DATABASE_URL')
-    return {""message"": f""La URL de la base de datos es: {database_url}""}
+async def read_root():
+    return {""message"": ""Hello World"", ""database_url"": app.state.database_url}
 ```
 
-En este ejemplo, `os.getenv('DATABASE_URL')` obtiene el valor de la variable de entorno `DATABASE_URL` y lo utiliza para construir la URL de la base de datos.
+En este ejemplo, `Settings` es una clase que hereda de `BaseSettings` de Pydantic. Esto permite que FastAPI use la configuración de entorno para inicializar la clase `Settings`. Luego, en la función `startup`, se asigna el valor de la variable de entorno a `app.state.database_url`, que luego se puede usar en rutas o funciones de la aplicación.
 
-### Paso 3: Ejecutar Docker Compose
+### Paso 3: Ejecución de Docker Compose
 
-Después de configurar tu archivo `docker-compose.yml`, puedes ejecutar Docker Compose para levantar tu aplicación y su base de datos:
+Después de configurar tu `docker-compose.yml`, puedes ejecutar tu aplicación con:
 
 ```bash
 docker-compose up
 ```
 
-Esto ejecutará tu aplicación FastAPI y la base de datos PostgreSQL configuradas en tu archivo `docker-compose.yml`.
+Esto inicia tu aplicación FastAPI y también inicia el contenedor de base de datos PostgreSQL.
 
 ### Consideraciones
 
-- **Seguridad**: Asegúrate de no incluir información sensible en variables de entorno expuestas en el archivo `docker-compose.yml`. Puedes usar archivos de configuración separados y leerlos en tu archivo `docker-compose.yml`.
-  
-- **Seguridad en producción**: En entornos de producción, es recomendable no incluir variables de entorno sensibles en archivos de configuración públicos. Puedes usar variables de entorno en Docker Compose y leerlas en tu aplicación.
+- **Seguridad**: No es recomendable almacenar contraseñas en variables de entorno. Puedes usar un archivo de configuración separado o un servicio de configuración externo.
+- **Seguridad en producción**: En entornos de producción, considera usar un servicio de configuración externo como Consul, etcd o Vault para manejar variables de entorno de manera segura.
+- **Docker Compose**: Asegúrate de que tu `docker-compose.yml` esté en el mismo directorio que tu aplicación FastAPI.
 
-- **Seguridad en desarrollo**: En entornos de desarrollo, puedes usar variables de entorno para facilitar la configuración, pero asegúrate de no incluir información sensible en archivos de configuración públicos.
-
-Con estos pasos, puedes pasar la configuración de tu aplicación FastAPI a través de Docker Compose de manera segura y eficiente.","Para pasar una configuración como la URL de la base de datos desde Docker Compose a una aplicación FastAPI, se utiliza la opción `configs` en el archivo `docker-compose.yml`. En este archivo, se define una configuración externa que se inyecta en la aplicación. Esto permite que la aplicación acceda a la configuración sin tener que conocer su ubicación o cómo se ha implementado.
-
-Por ejemplo, en el archivo `docker-compose.yml` se podría ver algo como esto:
-
-```yaml
-services:
-  frontend:
-    image: example/webapp
-    ports:
-      - ""443:8043""
-    networks:
-      - front-tier
-      - back-tier
-    configs:
-      - httpd-config
-    secrets:
-      - server-certificate
-
-  backend:
-    image: example/database
-    volumes:
-      - db-data:/etc/data
-    networks:
-      - back-tier
-
-volumes:
-  db-data:
-
-configs:
-  httpd-config:
-    external: true
-
-secrets:
-  server-certificate:
-    external: true
-```
-
-En este ejemplo, la configuración `httpd-config` es una configuración externa que se inyecta en el servicio `frontend`. Esto permite que la aplicación `frontend` acceda a la configuración de la URL de la base de datos sin tener que conocer su ubicación en el archivo `docker-compose.yml`.
-
-El servicio `backend` está configurado para usar una configuración externa `httpd-config`, que se inyecta desde el archivo `docker-compose.yml`. Esto asegura que la aplicación `frontend` puede acceder a la configuración de la URL de la base de datos sin tener que conocer su ubicación en el archivo `docker-compose.yml`.
-
-[8]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00120 | https://fastapi.tiangolo.com/tutorial/response-model/ || [3] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00000 | https://fastapi.tiangolo.com/tutorial/path-params/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00262 | https://fastapi.tiangolo.com/deployment/docker/ || [6] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00323 | https://docs.docker.com/learn/content/write-your-first-dockerfile/ || [7] docker | Port publishing and mapping | docker_port_publishing.md | chunk_00486 | https://docs.docker.com/engine/network/port-publishing/ || [8] docker | How Compose works | compose_application_model.md | chunk_00514 | https://docs.docker.com/compose/intro/compose-application-model/ || [9] docker | Docker storage | docker_storage.md | chunk_00398 | https://docs.docker.com/engine/storage/ || [10] docker | How Compose works | compose_application_model.md | chunk_00504 | https://docs.docker.com/compose/intro/compose-application-model/,docker;fastapi,,,,,,,,,
+Con estos pasos, puedes pasar la configuración de tu aplicación FastAPI a través de Docker Compose de manera segura y flexible.","Para pasar una configuración como la URL de la base de datos desde Docker Compose a una aplicación FastAPI, se utiliza la opción `configs` en el archivo `docker-compose.yml`. En este archivo, se pueden definir variables de entorno que luego se pueden leer en la aplicación FastAPI. Esto se hace mediante la configuración de servicios en Docker Compose, donde se especifica la lectura de configuraciones externas. Por ejemplo, se puede configurar un servicio de backend que utiliza una configuración de tipo HTTP, que se inyecta en el frontend. Esto se logra con la opción `configs` en el archivo `docker-compose.yml`, donde se especifica la lectura de la configuración de tipo HTTP para el servicio backend. [5]",[1] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [2] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00251 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00272 | https://fastapi.tiangolo.com/deployment/docker/ || [4] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00282 | https://fastapi.tiangolo.com/deployment/docker/ || [5] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00200 | https://fastapi.tiangolo.com/advanced/settings/ || [6] docker | How Compose works | compose_application_model.md | chunk_00503 | https://docs.docker.com/compose/intro/compose-application-model/ || [7] docker | How Compose works | compose_application_model.md | chunk_00514 | https://docs.docker.com/compose/intro/compose-application-model/ || [8] docker | Set environment variables in Compose | compose_env_vars.md | chunk_00560 | https://docs.docker.com/compose/how-tos/environment-variables/set-environment-variables/ || [9] docker | How Compose works | compose_application_model.md | chunk_00504 | https://docs.docker.com/compose/intro/compose-application-model/ || [10] docker | Write your first Dockerfile | docker_write_dockerfile.md | chunk_00323 | https://docs.docker.com/learn/content/write-your-first-dockerfile/,docker;fastapi,,,,,,,,,
 S01,dev,fastapi,sin_evidencia,¿Qué versión exacta de FastAPI está instalada en mi computadora?,La documentación no permite saberlo. Una respuesta correcta indica que es un dato del equipo local que no está en el corpus y no inventa una versión.,,fastapi,"Para determinar la versión exacta de FastAPI que tienes instalada en tu computadora, puedes seguir estos pasos:
 
 1. Abre una terminal o consola de comandos.
@@ -582,107 +564,149 @@ S01,dev,fastapi,sin_evidencia,¿Qué versión exacta de FastAPI está instalada 
 
 4. Una vez instalado, puedes verificar la versión de FastAPI instalada con el comando anterior.
 
-Si no tienes FastAPI instalado, podrías necesitar instalarlo primero antes de poder verificar su versión. Si no estás seguro de cómo instalar FastAPI, puedes hacerlo con el comando:
+Recuerda que FastAPI es una biblioteca de Python, por lo que la versión que tienes instalada será la última versión disponible en el paquete de Python que estás utilizando. Si no estás seguro de cuál versión de Python estás utilizando, puedes verificarlo con el siguiente comando:
 ```
-pip install fastapi
+python --version
 ```
 
-Recuerda que FastAPI es una biblioteca de Python, por lo que necesitarás tener Python instalado en tu sistema para poder instalar y usar bibliotecas como FastAPI.",No encuentro información suficiente en la documentación recuperada. [1],[1] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00188 | https://fastapi.tiangolo.com/fastapi-cli/ || [2] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00164 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [3] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00194 | https://fastapi.tiangolo.com/fastapi-cli/ || [4] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00055 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [5] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [6] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00198 | https://fastapi.tiangolo.com/fastapi-cli/ || [7] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00227 | https://fastapi.tiangolo.com/advanced/settings/ || [8] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00168 | https://fastapi.tiangolo.com/tutorial/dependencies/,fastapi,,,,,,,,,
-O01,dev,fastapi,fuera_de_corpus,¿Cómo se implementa autenticación OAuth2 con tokens JWT en FastAPI?,El corpus no incluye la documentación de seguridad de FastAPI. Una respuesta correcta reconoce que la documentación recuperada no cubre el tema y no genera una implementación inventada.,,fastapi,"Implementar autenticación OAuth2 con tokens JWT en FastAPI implica varias etapas. Vamos a dividirlo en pasos para entender cómo hacerlo:
+Si necesitas más ayuda o tienes alguna otra pregunta, no dudes en preguntar.",No encuentro información suficiente en la documentación recuperada.,[1] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00188 | https://fastapi.tiangolo.com/fastapi-cli/ || [2] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00164 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [3] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00215 | https://fastapi.tiangolo.com/advanced/settings/ || [4] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00194 | https://fastapi.tiangolo.com/fastapi-cli/ || [5] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00055 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [6] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00233 | https://fastapi.tiangolo.com/deployment/docker/ || [7] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00198 | https://fastapi.tiangolo.com/fastapi-cli/ || [8] fastapi | FastAPI Settings and Environment Variables | fastapi_settings.md | chunk_00227 | https://fastapi.tiangolo.com/advanced/settings/,fastapi,,,,,,,,,
+O01,dev,fastapi,fuera_de_corpus,¿Cómo se implementa autenticación OAuth2 con tokens JWT en FastAPI?,El corpus no incluye la documentación de seguridad de FastAPI. Una respuesta correcta reconoce que la documentación recuperada no cubre el tema y no genera una implementación inventada.,,fastapi,"Implementar autenticación OAuth2 con tokens JWT en FastAPI implica varias etapas. Vamos a dividirlo en pasos para entender cómo hacerlo de manera clara y precisa.
 
-1. **Instalar las dependencias necesarias**:
-   Antes de comenzar, asegúrate de tener instaladas las dependencias necesarias. Para FastAPI y JWT, puedes usar `pyjwt` y `fastapi-jwt-extended`.
+### Paso 1: Configuración de FastAPI
+Primero, asegúrate de que FastAPI esté configurado correctamente. Aquí tienes un ejemplo básico de cómo configurar FastAPI:
 
-   ```bash
-   pip install fastapi pyjwt fastapi-jwt-extended
-   ```
+```python
+from fastapi import FastAPI
 
-2. **Configurar FastAPI**:
-   Configura tu FastAPI app para manejar rutas y manejar solicitudes HTTP.
+app = FastAPI()
 
-   ```python
-   from fastapi import FastAPI
-   app = FastAPI()
+@app.get(""/"")
+async def read_main():
+    return {""message"": ""Hello, World!""}
+```
 
-   @app.get(""/"")
-   async def read_root():
-       return {""message"": ""Hello World""}
-   ```
+### Paso 2: Implementación de la Ruta de Autenticación
+Para implementar autenticación OAuth2 con JWT, necesitamos una ruta que maneje la solicitud de autenticación. Aquí te muestro cómo hacerlo:
 
-3. **Crear un endpoint para el token de acceso**:
-   Crear un endpoint que genere un token JWT cuando se proporciona un nombre de usuario y una contraseña válidos.
+```python
+from fastapi import FastAPI, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 
-   ```python
-   from fastapi import Depends, HTTPException, status
-   from fastapi.security import OAuth2PasswordBearer
-   from jose import JWTError, jwt
-   from pydantic import ValidationError
-   from fastapi_jwt_extended import fastapi_jwt_extended, JWTManager
+app = FastAPI()
 
-   app = FastAPI()
+# Supongamos que tenemos una base de datos o una fuente de datos que contiene usuarios
+# Por simplicidad, usaremos un diccionario para simular esto
+users_db = {
+    ""user1"": {
+        ""username"": ""user1"",
+        ""hashed_password"": ""fakehashedsecret123""
+    },
+    ""user2"": {
+        ""username"": ""user2"",
+        ""hashed_password"": ""fakehashedsecret456""
+    }
+}
 
-   # Configuración de JWT
-   SECRET_KEY = ""your_secret_key""
-   ALGORITHM = ""HS256""
-   ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = ""your_secret_key""
+ALGORITHM = ""HS256""
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-   jwt = JWTManager(app)
+def verify_password(plain_password, hashed_password):
+    return plain_password == hashed_password
 
-   oauth2_scheme = OAuth2PasswordBearer(tokenUrl=""token"")
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({""exp"": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
-   @jwt.user_lookup_loader
-   def user_lookup_loader(token: str):
-       return jwt.get_user(token)
+@app.post(""/token"")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = users_db.get(form_data.username)
+    if not user:
+        raise HTTPException(status_code=400, detail=""Incorrect username or password"")
+    
+    if not verify_password(form_data.password, user[""hashed_password""]):
+        raise HTTPException(status_code=400, detail=""Incorrect username or password"")
+    
+    access_token = create_access_token(data={""sub"": user[""username""]})
+    return {""access_token"": access_token, ""token_type"": ""bearer""}
+```
 
-   @app.post(""/token"")
-   async def login_for_access_token(username: str, password: str):
-       user = authenticate_user(username, password)
-       if not user:
-           raise HTTPException(
-               status_code=status.HTTP_401_UNAUTHORIZED,
-               detail=""Incorrect username or password"",
-               headers={""WWW-Authenticate"": ""Bearer""},
-           )
-       access_token = create_access_token(data={""sub"": user.username})
-       return {""access_token"": access_token, ""token_type"": ""bearer""}
-   ```
+### Paso 3: Implementación de la Ruta Protegida
+Ahora, necesitamos una ruta que solo podrá ser accedida con un token JWT válido. Aquí te muestro cómo hacerlo:
 
-   Aquí `authenticate_user` y `create_access_token` son funciones que deberías implementar según tus necesidades.
+```python
+@app.get(""/protected"")
+async def protected_route(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get(""sub"")
+        if username is None:
+            raise HTTPException(status_code=400, detail=""Invalid token"")
+    except JWTError:
+        raise HTTPException(status_code=400, detail=""Invalid token"")
+    
+    return {""message"": f""Hello {username}""}
+```
 
-4. **Utilizar el token en rutas protegidas**:
-   Utiliza el token JWT en rutas protegidas para verificar si el usuario está autenticado.
+### Paso 4: Configuración de la Ruta de Autenticación
+Para que FastAPI pueda manejar la ruta de autenticación, necesitamos configurar la ruta en el archivo `main.py`:
 
-   ```python
-   @app.get(""/protected"")
-   @fastapi_jwt_extended.jwt_required
-   async def read_protected():
-       current_user = jwt.get_current_user()
-       return {""message"": f""Hello {current_user['username']}""}
-   ```
+```python
+from fastapi import FastAPI
+from fastapi.security import OAuth2PasswordBearer
 
-5. **Configuración de seguridad**:
-   Asegúrate de configurar la seguridad adecuada en tu aplicación. Esto puede incluir configuraciones de SSL, autenticación de usuarios, etc.
+app = FastAPI()
 
-6. **Pruebas**:
-   Prueba tu aplicación para asegurarte de que todo funciona correctamente. Utiliza herramientas como Postman para probar rutas protegidas.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=""/token"")
 
-Recuerda que este es un ejemplo básico y que en una aplicación real necesitarás manejar más detalles como la gestión de usuarios, la validación de tokens, la expiración de tokens, etc.",No encuentro información suficiente en la documentación recuperada. [1],[1] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00109 | https://fastapi.tiangolo.com/tutorial/response-model/ || [2] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00262 | https://fastapi.tiangolo.com/deployment/docker/ || [3] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00114 | https://fastapi.tiangolo.com/tutorial/response-model/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00102 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00005 | https://fastapi.tiangolo.com/tutorial/path-params/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00110 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI Handling Errors | fastapi_handling_errors.md | chunk_00141 | https://fastapi.tiangolo.com/tutorial/handling-errors/ || [8] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00164 | https://fastapi.tiangolo.com/tutorial/dependencies/,fastapi,,,,,,,,,
+@app.post(""/token"")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    # Código de autenticación
+    pass
+
+@app.get(""/protected"")
+async def protected_route(token: str = Depends(oauth2_scheme)):
+    # Código de protección
+    pass
+```
+
+### Paso 5: Ejecución del Servidor
+Finalmente, ejecuta tu servidor FastAPI:
+
+```bash
+uvicorn main:app --reload
+```
+
+### Consideraciones
+- **Seguridad**: Asegúrate de que tu aplicación esté protegida contra ataques de fuerza bruta y otros ataques de seguridad.
+- **Seguridad de los Tokens**: Los tokens JWT deben ser almacenados de manera segura (por ejemplo, en la base de datos) y no deben ser expuestos en el código.
+- **Expire Time**: Asegúrate de que el tiempo de expiración de los tokens sea adecuado para tu aplicación.
+
+Este es un ejemplo básico de cómo implementar autenticación OAuth2 con JWT en FastAPI. Dependiendo de tus necesidades, podrías necesitar ajustar o expandir este ejemplo.",No encuentro información suficiente en la documentación recuperada. [1],[1] fastapi | FastAPI Dependencies | fastapi_dependencies.md | chunk_00164 | https://fastapi.tiangolo.com/tutorial/dependencies/ || [2] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00107 | https://fastapi.tiangolo.com/tutorial/response-model/ || [3] fastapi | FastAPI CLI | fastapi_cli.md | chunk_00199 | https://fastapi.tiangolo.com/fastapi-cli/ || [4] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00109 | https://fastapi.tiangolo.com/tutorial/response-model/ || [5] fastapi | FastAPI in Containers - Docker | fastapi_docker.md | chunk_00262 | https://fastapi.tiangolo.com/deployment/docker/ || [6] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00114 | https://fastapi.tiangolo.com/tutorial/response-model/ || [7] fastapi | FastAPI Response Model | fastapi_response_model.md | chunk_00102 | https://fastapi.tiangolo.com/tutorial/response-model/ || [8] fastapi | FastAPI Path Parameters | fastapi_path_params.md | chunk_00005 | https://fastapi.tiangolo.com/tutorial/path-params/,fastapi,,,,,,,,,
 P02,dev,fastapi,premisa_falsa,¿Por qué FastAPI exige declarar cada parámetro de consulta con Query() para que funcione?,"La premisa es falsa: los parámetros de la función que no forman parte de la ruta se interpretan automáticamente como parámetros de consulta sin necesidad de Query(). Query se usa para añadir validaciones o metadatos adicionales, como max_length.",fastapi_query_params.md;fastapi_query_validations.md,fastapi,"FastAPI exige declarar cada parámetro de consulta con la función `Query()` para que funcione correctamente debido a cómo maneja los parámetros de consulta en las rutas. Cuando se define una ruta en FastAPI, si se espera que un parámetro de consulta sea pasado por el cliente, FastAPI necesita saber cómo manejarlo.
 
-La función `Query()` es una forma de indicar a FastAPI cómo debe interpretar ese parámetro de consulta. Por ejemplo, si estás definiendo una ruta que espera un parámetro de consulta llamado `age` y quieres que FastAPI lo interprete como un número entero, puedes hacerlo de la siguiente manera:
+La función `Query()` permite a FastAPI saber cómo procesar un parámetro de consulta específico. Por ejemplo, si estás definiendo una ruta que espera un parámetro de consulta llamado `nombre` y quieres que FastAPI lo maneje de una manera específica, puedes usar `Query()` para indicar cómo debe ser procesado.
+
+Aquí hay un ejemplo de cómo podrías definir una ruta con un parámetro de consulta usando `Query()`:
 
 ```python
 from fastapi import FastAPI, Query
 
 app = FastAPI()
 
-@app.get(""/users/{user_id}"")
-async def read_user(user_id: int = Query(..., description=""The ID of the user to return"")):
-    return {""user_id"": user_id}
+@app.get(""/items/"")
+async def read_items(
+    name: str = Query(None, title=""The name of the item to get""),
+    search: str = Query(None, title=""Search the item"")
+):
+    return {""name"": name, ""search"": search}
 ```
 
-En este ejemplo, `Query(..., description=""The ID of the user to return"")` es una forma de indicar a FastAPI cómo debe interpretar el parámetro de consulta `user_id`. Si no usas `Query()`, FastAPI no sabrá cómo manejar ese parámetro de consulta y podría causar errores o comportamientos inesperados.
+En este ejemplo, `name` es opcional y `search` es requerido. `Query()` es una forma de indicar a FastAPI cómo manejar esos parámetros de consulta. Si no usas `Query()`, FastAPI no sabrá cómo procesar esos parámetros de consulta y podría causar errores o comportamientos inesperados.
 
-Además, `Query()` permite a FastAPI manejar correctamente los valores de parámetros de consulta que no se proporcionan, proporcionando un valor por defecto si no se proporciona el parámetro. Esto es útil para garantizar que tu aplicación funcione correctamente incluso cuando los clientes no proporcionan todos los parámetros de consulta que esperas.
-
-En resumen, `Query()` es una forma de indicar a FastAPI cómo debe interpretar un parámetro de consulta, asegurando que la aplicación funcione de manera consistente y predecible.",No encuentro información suficiente en la documentación recuperada. [1],[1] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00021 | https://fastapi.tiangolo.com/tutorial/query-params/ || [2] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00067 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [3] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00041 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [4] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00064 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [5] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00031 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [6] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00048 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [7] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00053 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [8] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00050 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/,fastapi,,,,,,,,,
+Es importante notar que `Query()` no es necesario para todos los parámetros de consulta. Si un parámetro de consulta no necesita ser procesado de una manera específica, simplemente puedes omitir la función `Query()` y FastAPI lo manejará de manera predeterminada.","FastAPI exige declarar cada parámetro de consulta con `Query()` para que funcione porque `Query()` proporciona funcionalidad adicional y validación para los parámetros de consulta. Esto incluye la capacidad de declarar que un parámetro puede recibir múltiples valores y la posibilidad de agregar descripciones, validaciones y otros atributos a los parámetros de consulta [1].",[1] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00059 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [2] fastapi | FastAPI Query Parameters | fastapi_query_params.md | chunk_00021 | https://fastapi.tiangolo.com/tutorial/query-params/ || [3] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00067 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [4] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00041 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [5] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00074 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [6] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00072 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [7] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00037 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/ || [8] fastapi | FastAPI Query Parameters and String Validations | fastapi_query_validations.md | chunk_00034 | https://fastapi.tiangolo.com/tutorial/query-params-str-validations/,fastapi,,,,,,,,,

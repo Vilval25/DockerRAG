@@ -4,23 +4,13 @@ Dominio: fastapi
 
 Fuente: https://fastapi.tiangolo.com/tutorial/dependencies/
 
-# Dependencies[¶](#dependencies "Permanent link")
-
-AI coding agents
-
-Use the official FastAPI skill for your installed version. Install it from your project directory:
-
-```
-uvx library-skills
-```
-
-See [Develop with AI](../../ai-development/).
+# Dependencies
 
 **FastAPI** has a very powerful but intuitive **Dependency Injection** system.
 
 It is designed to be very simple to use, and to make it very easy for any developer to integrate other components with **FastAPI**.
 
-## What is "Dependency Injection"[¶](#what-is-dependency-injection "Permanent link")
+## What is "Dependency Injection"
 
 **"Dependency Injection"** means, in programming, that there is a way for your code (in this case, your *path operation functions*) to declare things that it requires to work and use: "dependencies".
 
@@ -35,13 +25,13 @@ This is very useful when you need to:
 
 All these, while minimizing code repetition.
 
-## First Steps[¶](#first-steps "Permanent link")
+## First Steps
 
 Let's see a very simple example. It will be so simple that it is not very useful, for now.
 
 But this way we can focus on how the **Dependency Injection** system works.
 
-### Create a dependency, or "dependable"[¶](#create-a-dependency-or-dependable "Permanent link")
+### Create a dependency, or "dependable"
 
 Let's first focus on the dependency.
 
@@ -117,7 +107,7 @@ If you have an older version, you would get errors when trying to use `Annotated
 
 Make sure you [Upgrade the FastAPI version](../../deployment/versions/#upgrading-the-fastapi-versions) to at least 0.95.1 before using `Annotated`.
 
-### Import `Depends`[¶](#import-depends "Permanent link")
+### Import `Depends`
 
 ```
 from typing import Annotated
@@ -163,7 +153,7 @@ async def read_users(commons: dict = Depends(common_parameters)):
     return commons
 ```
 
-### Declare the dependency, in the "dependant"[¶](#declare-the-dependency-in-the-dependant "Permanent link")
+### Declare the dependency, in the "dependant"
 
 The same way you use `Body`, `Query`, etc. with your *path operation function* parameters, use `Depends` with a new parameter:
 
@@ -250,7 +240,7 @@ Notice that you don't have to create a special class and pass it somewhere to **
 
 You just pass it to `Depends` and **FastAPI** knows how to do the rest.
 
-## Share `Annotated` dependencies[¶](#share-annotated-dependencies "Permanent link")
+## Share `Annotated` dependencies
 
 In the examples above, you see that there's a tiny bit of **code duplication**.
 
@@ -293,7 +283,7 @@ The dependencies will keep working as expected, and the **best part** is that th
 
 This will be especially useful when you use it in a **large code base** where you use **the same dependencies** over and over again in **many *path operations***.
 
-## To `async` or not to `async`[¶](#to-async-or-not-to-async "Permanent link")
+## To `async` or not to `async`
 
 As dependencies will also be called by **FastAPI** (the same as your *path operation functions*), the same rules apply while defining your functions.
 
@@ -307,13 +297,13 @@ Note
 
 If you don't know, check the [Async: *"In a hurry?"*](../../async/#in-a-hurry) section about `async` and `await` in the docs.
 
-## Integrated with OpenAPI[¶](#integrated-with-openapi "Permanent link")
+## Integrated with OpenAPI
 
 All the request declarations, validations and requirements of your dependencies (and sub-dependencies) will be integrated in the same OpenAPI schema.
 
 So, the interactive docs will have all the information from these dependencies too:
 
-## Simple usage[¶](#simple-usage "Permanent link")
+## Simple usage
 
 If you look at it, *path operation functions* are declared to be used whenever a *path* and *operation* matches, and then **FastAPI** takes care of calling the function with the correct parameters, extracting the data from the request.
 
@@ -331,7 +321,7 @@ Other common terms for this same idea of "dependency injection" are:
 * injectables
 * components
 
-## **FastAPI** plug-ins[¶](#fastapi-plug-ins "Permanent link")
+## **FastAPI** plug-ins
 
 Integrations and "plug-ins" can be built using the **Dependency Injection** system. But in fact, there is actually **no need to create "plug-ins"**, as by using dependencies it's possible to declare an infinite number of integrations and interactions that become available to your *path operation functions*.
 
@@ -339,7 +329,7 @@ And dependencies can be created in a very simple and intuitive way that allows y
 
 You will see examples of this in the next chapters, about relational and NoSQL databases, security, etc.
 
-## **FastAPI** compatibility[¶](#fastapi-compatibility "Permanent link")
+## **FastAPI** compatibility
 
 The simplicity of the dependency injection system makes **FastAPI** compatible with:
 
@@ -352,7 +342,7 @@ The simplicity of the dependency injection system makes **FastAPI** compatible w
 * response data injection systems
 * etc.
 
-## Simple and Powerful[¶](#simple-and-powerful "Permanent link")
+## Simple and Powerful
 
 Although the hierarchical dependency injection system is very simple to define and use, it's still very powerful.
 
@@ -392,7 +382,7 @@ admin_user --> activate_user
 paying_user --> pro_items
 ```
 
-## Integrated with **OpenAPI**[¶](#integrated-with-openapi_1 "Permanent link")
+## Integrated with **OpenAPI**
 
 All these dependencies, while declaring their requirements, also add parameters, validations, etc. to your *path operations*.
 

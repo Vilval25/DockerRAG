@@ -4,17 +4,7 @@ Dominio: fastapi
 
 Fuente: https://fastapi.tiangolo.com/tutorial/body/
 
-# Request Body[¶](#request-body "Permanent link")
-
-AI coding agents
-
-Use the official FastAPI skill for your installed version. Install it from your project directory:
-
-```
-uvx library-skills
-```
-
-See [Develop with AI](../../ai-development/).
+# Request Body
 
 When you need to send data from a client (let's say, a browser) to your API, you send it as a **request body**.
 
@@ -32,7 +22,7 @@ Sending a body with a `GET` request has an undefined behavior in the specificati
 
 As it is discouraged, the interactive docs with Swagger UI won't show the documentation for the body when using `GET`, and proxies in the middle might not support it.
 
-## Import Pydantic's `BaseModel`[¶](#import-pydantics-basemodel "Permanent link")
+## Import Pydantic's `BaseModel`
 
 First, you need to import `BaseModel` from `pydantic`:
 
@@ -53,7 +43,7 @@ async def create_item(item: Item):
     return item
 ```
 
-## Create your data model[¶](#create-your-data-model "Permanent link")
+## Create your data model
 
 Then you declare your data model as a class that inherits from `BaseModel`.
 
@@ -98,7 +88,7 @@ For example, this model above declares a JSON "`object`" (or Python `dict`) like
 }
 ```
 
-## Declare it as a parameter[¶](#declare-it-as-a-parameter "Permanent link")
+## Declare it as a parameter
 
 To add it to your *path operation*, declare it the same way you declared path and query parameters:
 
@@ -121,7 +111,7 @@ async def create_item(item: Item):
 
 ...and declare its type as the model you created, `Item`.
 
-## Results[¶](#results "Permanent link")
+## Results
 
 With just that Python type declaration, **FastAPI** will:
 
@@ -134,13 +124,13 @@ With just that Python type declaration, **FastAPI** will:
 * Generate [JSON Schema](https://json-schema.org) definitions for your model, you can also use them anywhere else you like if it makes sense for your project.
 * Those schemas will be part of the generated OpenAPI schema, and used by the automatic documentation UIs.
 
-## Automatic docs[¶](#automatic-docs "Permanent link")
+## Automatic docs
 
 The JSON Schemas of your models will be part of your OpenAPI generated schema, and will be shown in the interactive API docs:
 
 And will also be used in the API docs inside each *path operation* that needs them:
 
-## Editor support[¶](#editor-support "Permanent link")
+## Editor support
 
 In your editor, inside your function you will get type hints and completion everywhere (this wouldn't happen if you received a `dict` instead of a Pydantic model):
 
@@ -168,7 +158,7 @@ It improves editor support for Pydantic models, with:
 * searching
 * inspections
 
-## Use the model[¶](#use-the-model "Permanent link")
+## Use the model
 
 Inside of the function, you can access all the attributes of the model object directly:
 
@@ -193,7 +183,7 @@ async def create_item(item: Item):
     return item_dict
 ```
 
-## Request body + path parameters[¶](#request-body-path-parameters "Permanent link")
+## Request body + path parameters
 
 You can declare path parameters and request body at the same time.
 
@@ -216,7 +206,7 @@ async def update_item(item_id: int, item: Item):
     return {"item_id": item_id, **item.model_dump()}
 ```
 
-## Request body + path + query parameters[¶](#request-body-path-query-parameters "Permanent link")
+## Request body + path + query parameters
 
 You can also declare **body**, **path** and **query** parameters, all at the same time.
 
@@ -256,6 +246,6 @@ The `str | None` is not used by FastAPI to determine that the value is not requi
 
 But adding the type annotations will allow your editor to give you better support and detect errors.
 
-## Without Pydantic[¶](#without-pydantic "Permanent link")
+## Without Pydantic
 
 If you don't want to use Pydantic models, you can also use **Body** parameters. See the docs for [Body - Multiple Parameters: Singular values in body](../body-multiple-params/#singular-values-in-body).

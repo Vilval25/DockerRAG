@@ -4,14 +4,6 @@ Dominio: docker
 
 Fuente: https://docs.docker.com/engine/network/
 
-# Networking overview
-
----
-
-Table of contents
-
----
-
 Container networking refers to the ability for containers to connect to and
 communicate with each other, and with non-Docker network services.
 
@@ -47,7 +39,7 @@ PING docker.com (23.185.0.4): 56 data bytes
 round-trip min/avg/max = 6.564/6.564/6.564 ms
 ```
 
-## [User-defined networks](#user-defined-networks)
+## User-defined networks
 
 With the default configuration, containers attached to the default
 bridge network have unrestricted network access to each other using
@@ -68,7 +60,7 @@ $ docker network create -d bridge my-net
 $ docker run --network=my-net -it busybox
 ```
 
-### [Drivers](#drivers)
+### Drivers
 
 Docker Engine has a number of network drivers, as well as the default "bridge".
 On Linux, the following built-in network drivers are available:
@@ -88,7 +80,7 @@ their configuration options and details about their functionality.
 Native Windows containers have a different set of drivers, see
 [Windows container network drivers](https://learn.microsoft.com/en-us/virtualization/windowscontainers/container-networking/network-drivers-topologies).
 
-### [Connecting to multiple networks](#connecting-to-multiple-networks)
+### Connecting to multiple networks
 
 Connecting a container to a network can be compared to connecting an Ethernet
 cable to a physical host. Just as a host can be connected to multiple Ethernet
@@ -128,7 +120,7 @@ $ docker run --network name=gwnet,gw-priority=1 --network anet1 --name myctr myi
 $ docker network connect anet2 myctr
 ```
 
-## [Published ports](#published-ports)
+## Published ports
 
 When you create or run a container using `docker create` or `docker run`, all
 ports of containers on bridge networks are accessible from the Docker host and
@@ -143,7 +135,7 @@ For more information about port mapping, including how to disable it and use
 direct routing to containers, see
 [port publishing](https://docs.docker.com/engine/network/port-publishing/).
 
-## [IP address and hostname](#ip-address-and-hostname)
+## IP address and hostname
 
 When creating a network, IPv4 address allocation is enabled by default, it
 can be disabled using `--ipv4=false`. IPv6 address allocation can be enabled
@@ -168,11 +160,11 @@ You can override the hostname using `--hostname`.
 When connecting to an existing network using `docker network connect`,
 you can use the `--alias` flag to specify an additional network alias for the container on that network.
 
-### [Subnet allocation](#subnet-allocation)
+### Subnet allocation
 
 Docker networks can use either explicitly configured subnets or automatically allocated ones from default pools.
 
-#### [Explicit subnet configuration](#explicit-subnet-configuration)
+#### Explicit subnet configuration
 
 You can specify exact subnets when creating a network:
 
@@ -180,7 +172,7 @@ You can specify exact subnets when creating a network:
 $ docker network create --ipv6 --subnet 192.0.2.0/24 --subnet 2001:db8::/64 mynet
 ```
 
-#### [Automatic subnet allocation](#automatic-subnet-allocation)
+#### Automatic subnet allocation
 
 When no `--subnet` option is provided, Docker automatically selects a subnet from predefined "default address pools".
 These pools can be configured in `/etc/docker/daemon.json`. Docker's built-in default is equivalent to:
@@ -247,7 +239,7 @@ $ docker network inspect mynet -f '{{json .IPAM.Config}}' | jq .
 > If Docker is downgraded to an older version, networks created in this way will become unusable.
 > They can be removed and re-created, or will function again if the daemon is restored to 29.0.0 or later.
 
-## [DNS services](#dns-services)
+## DNS services
 
 Containers use the same DNS servers as the host by default, but you can
 override this with `--dns`.
@@ -284,7 +276,7 @@ configuration.
 | `--dns-opt` | A key-value pair representing a DNS option and its value. See your operating system's documentation for `resolv.conf` for valid options. |
 | `--hostname` | The hostname a container uses for itself. Defaults to the container's ID if not specified. |
 
-### [Custom hosts](#custom-hosts)
+### Custom hosts
 
 Your container will have lines in `/etc/hosts` which define the hostname of the
 container itself, as well as `localhost` and a few other common things. Custom
@@ -294,7 +286,7 @@ containers. To pass additional hosts into a container, refer to
 container hosts file](/reference/cli/docker/container/run/#add-host) in the
 `docker run` reference documentation.
 
-## [Container networks](#container-networks)
+## Container networks
 
 In addition to user-defined networks, you can attach a container to another
 container's networking stack directly, using the `--network container:<name|id>` flag format.

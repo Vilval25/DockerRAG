@@ -4,17 +4,7 @@ Dominio: fastapi
 
 Fuente: https://fastapi.tiangolo.com/tutorial/query-params/
 
-# Query Parameters[¶](#query-parameters "Permanent link")
-
-AI coding agents
-
-Use the official FastAPI skill for your installed version. Install it from your project directory:
-
-```
-uvx library-skills
-```
-
-See [Develop with AI](../../ai-development/).
+# Query Parameters
 
 When you declare other function parameters that are not part of the path parameters, they are automatically interpreted as "query" parameters.
 
@@ -54,7 +44,7 @@ All the same processes that apply to path parameters also apply to query paramet
 * Data validation
 * Automatic documentation
 
-## Defaults[¶](#defaults "Permanent link")
+## Defaults
 
 As query parameters are not a fixed part of a path, they can be optional and can have default values.
 
@@ -83,7 +73,7 @@ The parameter values in your function will be:
 * `skip=20`: because you set it in the URL
 * `limit=10`: because that was the default value
 
-## Optional parameters[¶](#optional-parameters "Permanent link")
+## Optional parameters
 
 The same way, you can declare optional query parameters, by setting their default to `None`:
 
@@ -105,7 +95,7 @@ Tip
 
 Also notice that **FastAPI** is smart enough to notice that the path parameter `item_id` is a path parameter and `q` is not, so, it's a query parameter.
 
-## Query parameter type conversion[¶](#query-parameter-type-conversion "Permanent link")
+## Query parameter type conversion
 
 You can also declare `bool` types, and they will be converted:
 
@@ -164,7 +154,7 @@ If `short` is omitted, **FastAPI** uses its default value, which is `False` in t
 
 An empty value (`?short=`) or an unrecognized value (for example, `?short=maybe`) produces a `422` validation error.
 
-## Multiple path and query parameters[¶](#multiple-path-and-query-parameters "Permanent link")
+## Multiple path and query parameters
 
 You can declare multiple path parameters and query parameters at the same time, **FastAPI** knows which is which.
 
@@ -191,7 +181,7 @@ async def read_user_item(
     return item
 ```
 
-## Required query parameters[¶](#required-query-parameters "Permanent link")
+## Required query parameters
 
 When you declare a default value for non-path parameters (for now, we have only seen query parameters), then it is not required.
 

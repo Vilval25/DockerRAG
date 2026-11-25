@@ -13,7 +13,7 @@ EMBEDDING_MODEL = os.getenv(
 
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-COLLECTION = "docker_fastapi_docs_v1"
+COLLECTION = "docker_fastapi_docs_v2"
 
 # Cantidad final de fragmentos para consultas de un solo dominio.
 # Ocho fragmentos permiten conservar evidencias complementarias de una misma

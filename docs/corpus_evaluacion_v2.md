@@ -54,9 +54,9 @@ Por dominio: 9 FastAPI, 9 Docker, 6 integradas, 2 sin evidencia, 2 fuera del cor
 | Archivo | URL | Preguntas |
 |---|---|---|
 | docker_what_is_container.md | https://docs.docker.com/learn/content/what-is-a-container/ | D01 |
-| docker_write_dockerfile.md | https://docs.docker.com/get-started/docker-concepts/building-images/writing-a-dockerfile/ | D02, D03, P01 |
-| docker_build_cache.md | https://docs.docker.com/get-started/docker-concepts/building-images/using-the-build-cache/ | D06, I02 |
-| docker_persisting_data.md | https://docs.docker.com/get-started/docker-concepts/running-containers/persisting-container-data/ | I06 |
+| docker_write_dockerfile.md | https://docs.docker.com/learn/content/write-your-first-dockerfile/ | D02, D03, P01 |
+| docker_build_cache.md | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/ | D06, I02 |
+| docker_persisting_data.md | https://docs.docker.com/learn/content/keep-data-with-volumes-and-bind-mounts/ | I06 |
 | docker_storage.md | https://docs.docker.com/engine/storage/ | D04 |
 | docker_networking.md | https://docs.docker.com/engine/network/ | D05 |
 | docker_bridge.md | https://docs.docker.com/engine/network/drivers/bridge/ | D05 |

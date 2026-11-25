@@ -40,25 +40,17 @@ QUERY_EXPANSION_SEARCH_K = int(
 # Constante de Reciprocal Rank Fusion.
 RRF_CONSTANT = int(os.getenv("RRF_CONSTANT", "60"))
 
-# Pesos de las consultas utilizadas durante RRF.
-# Las consultas específicas tienen prioridad sobre las consultas generales.
+# Pesos de las consultas utilizadas durante RRF: la pregunta original
+# y su expansión bilingüe generada por el LLM.
 RRF_ORIGINAL_QUERY_WEIGHT = float(
     os.getenv("RRF_ORIGINAL_QUERY_WEIGHT", "1.0")
 )
 RRF_EXPANDED_QUERY_WEIGHT = float(
     os.getenv("RRF_EXPANDED_QUERY_WEIGHT", "0.75")
 )
-RRF_SPECIFIC_QUERY_WEIGHT = float(
-    os.getenv("RRF_SPECIFIC_QUERY_WEIGHT", "0.75")
-)
-RRF_PRIMARY_QUERY_WEIGHT = float(
-    os.getenv("RRF_PRIMARY_QUERY_WEIGHT", "1.25")
-)
 
 if min(
     RRF_ORIGINAL_QUERY_WEIGHT,
     RRF_EXPANDED_QUERY_WEIGHT,
-    RRF_SPECIFIC_QUERY_WEIGHT,
-    RRF_PRIMARY_QUERY_WEIGHT,
 ) <= 0:
     raise ValueError("Los pesos de las consultas RRF deben ser mayores que cero.")

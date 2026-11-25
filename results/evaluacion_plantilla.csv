@@ -1,1 +1,0 @@
-id,domain,category,question,expected_answer,expected_sources,answer_base,answer_rag,retrieval_relevant,accuracy_base,accuracy_rag,grounded_base,grounded_rag,hallucination_base,hallucination_rag,notes

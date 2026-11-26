@@ -1,0 +1,16 @@
+﻿id,grounding_base,accuracy_base,grounding_rag,accuracy_rag,retrieval_relevant,citations_rag,notes,graded_at
+F01,Alucinada,1,Alucinada,1,No,No,"grounding_rag: mayoría Alucinada (gustavo_vila: Parcial); retrieval_relevant: sin mayoría (andre Sí, gustavo_vila Parcial, claude No); se aplica la rúbrica: No, el fragmento [2] trae {item_id} sin tipo ni el error de validación",2026-11-26T13:36:05+00:00
+F03,Parcial,2,Fundamentada,1,Parcial,Parcial,accuracy_base: mayoría 2 (andre: 1); accuracy_rag: mayoría 1 (andre: 0); citations_rag: mayoría Parcial (claude: Sí),2026-11-26T13:36:05+00:00
+F05,Alucinada,0,Fundamentada,2,Sí,Sí,,2026-11-26T13:36:05+00:00
+F07,Parcial,1,Fundamentada,2,Sí,No,accuracy_rag: mayoría 2 (andre: 1); retrieval_relevant: mayoría Sí (andre: Parcial),2026-11-26T13:36:05+00:00
+F09,Alucinada,0,Alucinada,1,Parcial,Parcial,grounding_base: mayoría Alucinada (gustavo_vila: Parcial); grounding_rag: mayoría Alucinada (claude: Parcial),2026-11-26T13:36:05+00:00
+D01,Parcial,2,Fundamentada,2,Sí,No,grounding_base: mayoría Parcial (gustavo_vila: Fundamentada),2026-11-26T13:36:05+00:00
+D03,Parcial,1,Fundamentada,2,Sí,No,accuracy_base: mayoría 1 (gustavo_vila: 2); retrieval_relevant: mayoría Sí (claude: Parcial); citations_rag: mayoría No (claude: Parcial),2026-11-26T13:36:05+00:00
+D05,Alucinada,1,Fundamentada,2,Sí,Parcial,accuracy_base: mayoría 1 (andre: 0),2026-11-26T13:36:05+00:00
+D07,Parcial,1,Fundamentada,2,Sí,Parcial,grounding_base: mayoría Parcial (andre: Alucinada),2026-11-26T13:36:05+00:00
+I01,Alucinada,1,Alucinada,1,Parcial,Parcial,citations_rag: mayoría Parcial (andre: No),2026-11-26T13:36:05+00:00
+I03,Alucinada,1,Alucinada,1,Parcial,No,retrieval_relevant: mayoría Parcial (claude: Sí),2026-11-26T13:36:05+00:00
+I05,Parcial,1,Alucinada,0,No,No,retrieval_relevant: mayoría No (andre: Parcial),2026-11-26T13:36:05+00:00
+S01,Parcial,2,Fundamentada,2,N/A,N/A,accuracy_base: mayoría 2 (gustavo_vila: 1),2026-11-26T13:36:05+00:00
+O01,Alucinada,0,Fundamentada,2,N/A,N/A,grounding_base: mayoría Alucinada (andre: Parcial),2026-11-26T13:36:05+00:00
+P02,Alucinada,0,Alucinada,0,Sí,Parcial,accuracy_base: mayoría 0 (claude: 1),2026-11-26T13:36:05+00:00

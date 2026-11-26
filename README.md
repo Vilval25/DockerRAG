@@ -65,8 +65,8 @@ grade.py              herramienta de calificación manual
 
 ## Evaluación
 
-Sigue el lineamiento del docente: comparar respuestas **sin RAG y con RAG** y clasificar
-si están **fundamentadas en la documentación o alucinadas**.
+La evaluación compara las respuestas del modelo sin RAG y con RAG y clasifica si están
+fundamentadas en la documentación o contienen información inventada.
 
 El banco tiene 30 preguntas en dos conjuntos:
 

@@ -1,8 +1,7 @@
 # Rúbrica de evaluación de respuestas
 
-Basada en la indicación del profesor para el tema del grupo 3: *"comparar respuestas
-del LLM sin RAG vs. con RAG, y clasificar manualmente si la respuesta está fundamentada
-en el documento o alucinada"* (lineamientos del PE2, p. 4).
+La rúbrica compara las respuestas del modelo sin RAG y con RAG y clasifica si cada una
+está fundamentada en la documentación o contiene información inventada.
 
 | Criterio | Se aplica a | Valores |
 |---|---|---|

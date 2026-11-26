@@ -8,7 +8,7 @@ todas se obtienen correctamente reemplaza los Markdown de data/documentos y
 su manifest.json. Así, un fallo de red no deja un corpus a medias.
 
 La lista de fuentes y la pregunta que respalda cada una están documentadas en
-docs/corpus_evaluacion_v2.md.
+evaluation/corpus_evaluacion_v2.md.
 """
 import json
 import re

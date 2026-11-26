@@ -1,7 +1,7 @@
 # Corpus y banco de preguntas v2
 
 Propuesta para reemplazar el corpus de 13 documentos y el banco de 15 preguntas de la v1.
-El banco está en [`results/preguntas_evaluacion_v2.csv`](../results/preguntas_evaluacion_v2.csv).
+El banco está en [`preguntas_evaluacion_v2.csv`](preguntas_evaluacion_v2.csv).
 
 Todas las URLs y los hechos en los que se basan las respuestas esperadas se comprobaron
 en la documentación oficial el **2026-11-25**.
@@ -86,7 +86,7 @@ tiene al menos un documento.
 
 Implementado: `src/download_docs.py` descarga y limpia estas fuentes, `src/rag.py` ya no
 contiene respuestas deterministas ni consultas escritas para preguntas concretas, y
-`src/evaluate.py` detecta el dominio automáticamente y separa los conjuntos `dev` y `test`.
+`evaluation/evaluate.py` detecta el dominio automáticamente y separa los conjuntos `dev` y `test`.
 Instrucciones de uso en el `README.md`.
 
 ## Reproducibilidad

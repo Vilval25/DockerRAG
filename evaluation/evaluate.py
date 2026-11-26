@@ -1,10 +1,10 @@
 """Ejecuta el banco de preguntas con el LLM base y con RAG.
 
 Uso:
-    python -m src.evaluate                      # preguntas dev (por defecto)
-    python -m src.evaluate --split test         # preguntas de prueba, solo al final
-    python -m src.evaluate --split dev --limit 3 --output results/piloto.csv
-    python -m src.evaluate --split all             # las 30 preguntas
+    python -m evaluation.evaluate                      # preguntas dev (por defecto)
+    python -m evaluation.evaluate --split test         # preguntas de prueba, solo al final
+    python -m evaluation.evaluate --split dev --limit 3 --output evaluation/results/piloto.csv
+    python -m evaluation.evaluate --split all             # las 30 preguntas
 
 Las mejoras del sistema se ajustan solo con el conjunto dev. El conjunto test
 se ejecuta al final para comprobar si la mejora se mantiene con preguntas
@@ -29,11 +29,12 @@ from pathlib import Path
 
 import requests
 
-from . import config
-from .config import ROOT
-from .rag import SYSTEM_BASE, SYSTEM_RAG, answer, resolve_domains
+from src import config
+from src.config import ROOT
+from src.rag import SYSTEM_BASE, SYSTEM_RAG, answer, resolve_domains
 
-INPUT_DEFAULT = ROOT / "results" / "preguntas_evaluacion_v2.csv"
+EVAL_DIR = ROOT / "evaluation"
+INPUT_DEFAULT = EVAL_DIR / "preguntas_evaluacion_v2.csv"
 SPLITS = ("dev", "test", "all")
 
 QUESTION_FIELDS = [
@@ -41,8 +42,8 @@ QUESTION_FIELDS = [
     "expected_answer", "essential_elements", "expected_sources",
 ]
 
-# Rúbrica definida en docs/rubrica_evaluacion.md. Las columnas quedan vacías:
-# se califican con grade.py, que guarda las notas en results/calificaciones/.
+# Rúbrica definida en evaluation/rubrica_evaluacion.md. Las columnas quedan vacías:
+# se califican con evaluation/grade.py, que guarda las notas en evaluation/results/calificaciones/.
 RUBRIC_FIELDS = [
     "grounding_base", "accuracy_base",
     "grounding_rag", "accuracy_rag",
@@ -174,7 +175,7 @@ def run():
     parser.add_argument(
         "--output",
         default=None,
-        help="CSV de resultados (por defecto results/evaluacion_<split>_resultados.csv)",
+        help="CSV de resultados (por defecto evaluation/results/evaluacion_<split>_resultados.csv)",
     )
     parser.add_argument("--limit", type=int, default=0, help="Ejecuta solo las primeras N preguntas (0 = todas)")
     args = parser.parse_args()
@@ -182,7 +183,7 @@ def run():
     input_path = Path(args.input)
     output_path = Path(
         args.output
-        or ROOT / "results" / f"evaluacion_{args.split}_resultados.csv"
+        or EVAL_DIR / "results" / f"evaluacion_{args.split}_resultados.csv"
     )
 
     questions = load_questions(input_path, args.split)

@@ -3,10 +3,10 @@
 Uso:
     streamlit run grade.py
 
-La rúbrica está definida en docs/rubrica_evaluacion.md. Cada evaluador escribe
+La rúbrica está definida en evaluation/rubrica_evaluacion.md. Cada evaluador escribe
 su nombre y califica las preguntas de un CSV de resultados
-(results/evaluacion_*_resultados.csv). Las notas se guardan en
-results/calificaciones/<resultados>__<evaluador>.csv, sin modificar el CSV de
+(evaluation/results/evaluacion_*_resultados.csv). Las notas se guardan en
+evaluation/results/calificaciones/<resultados>__<evaluador>.csv, sin modificar el CSV de
 resultados.
 
 Flujo recomendado:
@@ -19,18 +19,23 @@ from __future__ import annotations
 
 import csv
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from src.config import COLLECTION, DB_DIR, ROOT
+# Permite ejecutar `streamlit run evaluation/grade.py` desde la raíz del repositorio.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-RESULTS_DIR = ROOT / "results"
+from src.config import COLLECTION, DB_DIR, ROOT  # noqa: E402
+
+EVAL_DIR = ROOT / "evaluation"
+RESULTS_DIR = EVAL_DIR / "results"
 GRADES_DIR = RESULTS_DIR / "calificaciones"
-QUESTION_BANK = RESULTS_DIR / "preguntas_evaluacion_v2.csv"
-RUBRIC_DOC = ROOT / "docs" / "rubrica_evaluacion.md"
+QUESTION_BANK = EVAL_DIR / "preguntas_evaluacion_v2.csv"
+RUBRIC_DOC = EVAL_DIR / "rubrica_evaluacion.md"
 CONSENSUS = "consenso"
 
 GROUNDING_HELP = (
@@ -274,7 +279,7 @@ st.title("📝 Calificación de respuestas")
 
 result_files = list_result_files()
 if not result_files:
-    st.error("No hay archivos results/evaluacion_*_resultados.csv. Ejecuta primero: python -m src.evaluate")
+    st.error("No hay archivos evaluation/results/evaluacion_*_resultados.csv. Ejecuta primero: python -m evaluation.evaluate")
     st.stop()
 
 with st.sidebar:
@@ -286,12 +291,12 @@ with st.sidebar:
     )
     evaluator = normalize_evaluator(st.text_input("Tu nombre (evaluador)", key="evaluator"))
     if evaluator:
-        st.caption(f"Notas en `results/calificaciones/{grades_path(results_file, evaluator).name}`")
+        st.caption(f"Notas en `evaluation/results/calificaciones/{grades_path(results_file, evaluator).name}`")
     with st.expander("Rúbrica completa"):
         if RUBRIC_DOC.exists():
             st.markdown(RUBRIC_DOC.read_text(encoding="utf-8"))
         else:
-            st.warning("No se encontró docs/rubrica_evaluacion.md")
+            st.warning("No se encontró evaluation/rubrica_evaluacion.md")
 
 rows = read_csv(results_file)
 order = [row["id"] for row in rows]

@@ -1,115 +1,185 @@
-# DevDocsRAG — FastAPI + Docker (Grupo 3)
+# DevDocsRAG
 
-Sistema RAG (*Retrieval-Augmented Generation*) local para responder en español consultas
-sobre la documentación oficial de **FastAPI** y **Docker**. Proyecto Equipo N.º 2 de
-Sistemas Inteligentes (UNMSM, 2026-2, sección 3).
+Asistente local que responde en español preguntas sobre la documentación oficial de
+**FastAPI** y **Docker**, citando los fragmentos de la documentación en los que se apoya.
+Funciona por completo en el equipo del usuario: el modelo de lenguaje se ejecuta con
+[Ollama](https://ollama.com) y la documentación se indexa en una base vectorial local.
 
-- **Modelo generador:** Qwen 2.5:3B mediante [Ollama](https://ollama.com), ejecutado en local.
-- **Recuperación:** búsqueda híbrida (embeddings multilingües en ChromaDB + BM25) fusionada con RRF.
-- **Corpus:** 23 páginas oficiales (13 Docker, 10 FastAPI), 573 fragmentos.
-- **Informe:** [`solPE2_Jefferson-Rojas_Juan-Tocto_Andre-Valenzuela_Gustavo-Vila.ipynb`](solPE2_Jefferson-Rojas_Juan-Tocto_Andre-Valenzuela_Gustavo-Vila.ipynb)
+- Responde con citas numeradas a fragmentos de la documentación oficial.
+- Detecta si la pregunta trata de FastAPI, de Docker o de ambas, y busca en la
+  documentación correspondiente.
+- Combina búsqueda semántica con embeddings multilingües y búsqueda por términos
+  exactos con BM25.
+- Reconoce cuando la documentación no cubre la pregunta en lugar de inventar una respuesta.
+- Incluye una interfaz web, herramientas de terminal y un banco de evaluación con 30
+  preguntas.
 
-## Instalación (Windows PowerShell)
+## Ejemplo
+
+```text
+> python -m src.ask "¿Qué hacen las instrucciones FROM, WORKDIR, COPY, RUN y CMD de un Dockerfile?"
+
+RESPUESTA:
+Las instrucciones de un Dockerfile son:
+- `FROM`: Selecciona la imagen base en la que se construirá el contenedor. [1]
+- `WORKDIR`: Establece la carpeta dentro de la imagen donde las instrucciones siguientes se aplicarán. [1]
+- `COPY`: Copia archivos desde el proyecto al contenedor. [1]
+- `RUN`: Ejecuta una instrucción durante la construcción de la imagen, como la instalación de paquetes. [1]
+- `CMD`: Establece el comando por defecto que se ejecutará cuando se inicie el contenedor. [1]
+
+FUENTES RECUPERADAS:
+[1] [docker] Write your first Dockerfile | docker_write_dockerfile.md | chunk_00308 | https://docs.docker.com/learn/content/write-your-first-dockerfile/
+[2] [docker] Image layers and the build cache | docker_build_cache.md | chunk_00335 | https://docs.docker.com/learn/content/how-image-layers-and-the-build-cache-work/
+...
+```
+
+## Inicio rápido
 
 Requisitos: Python 3.11 o 3.12, [Ollama](https://ollama.com/download) y unos 3 GB libres.
 
 ```powershell
-git clone <url-del-repositorio>
+git clone https://github.com/Vilval25/DockerRAG.git
 cd DockerRAG
 py -3.12 -m venv .venv
-.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1          # en Linux o macOS: source .venv/bin/activate
 pip install -r requirements.txt
 ollama pull qwen2.5:3b
-python -m src.ingest      # crea el índice chroma_db/ a partir de data/documentos/
+python -m src.ingest                # crea el índice local a partir del corpus
+streamlit run app.py                # abre la interfaz web
 ```
 
-El índice (`chroma_db/`) no está en el repositorio: `src.ingest` lo genera en un par de
-minutos y, como el corpus sí está versionado, el resultado es idéntico en cualquier equipo
-(mismos identificadores de fragmento).
+La primera ejecución de `src.ingest` descarga el modelo de embeddings y tarda un par de
+minutos. El índice (`chroma_db/`) no se versiona: se genera a partir del corpus incluido en
+el repositorio y produce siempre los mismos fragmentos.
 
-Si ves caracteres extraños en la consola, ejecuta Python en modo UTF-8:
-`$env:PYTHONUTF8 = "1"`.
+Si la consola de Windows muestra caracteres extraños, ejecuta `$env:PYTHONUTF8 = "1"`.
 
 ## Uso
 
+### Interfaz web
+
 ```powershell
-streamlit run app.py                                         # interfaz web (demo)
-python -m src.ask "¿Cómo publico un puerto con Docker?"       # pregunta con RAG
-python -m src.ask --base "¿Cómo publico un puerto con Docker?" # mismo modelo sin RAG
-python -m src.search "¿Qué hace EXPOSE?"                     # ver qué fragmentos se recuperan
+streamlit run app.py
 ```
 
-## Estructura
+Permite escribir la pregunta, elegir si se consulta la documentación de FastAPI, la de
+Docker o se detecta automáticamente, y activar o desactivar la recuperación para comparar
+con el modelo sin RAG. Bajo la respuesta se muestran los fragmentos recuperados con su
+enlace a la página oficial.
 
+### Terminal
+
+```powershell
+python -m src.ask "¿Cómo publico un puerto con Docker?"          # pregunta con RAG
+python -m src.ask --base "¿Cómo publico un puerto con Docker?"   # mismo modelo sin RAG
+python -m src.ask --domain fastapi "¿Cómo funcionan las dependencias?"
+python -m src.search "¿Qué hace EXPOSE?"                         # solo muestra los fragmentos recuperados
+python -m src.search --full --domain docker "volúmenes con nombre"
 ```
-data/documentos/          corpus descargado (Markdown) + manifest.json
-docs/
-  corpus_evaluacion_v2.md diseño del corpus y del banco de preguntas
-  rubrica_evaluacion.md   rúbrica de calificación (definición de cada valor)
-results/
-  preguntas_evaluacion_v2.csv            banco de 30 preguntas (dev/test)
-  evaluacion_{dev,test}_resultados.csv   respuestas sin RAG y con RAG
-  evaluacion_test_resultados.meta.json   con qué versión exacta se generó test
-  calificaciones/                        notas por evaluador
+
+`src.search` no llama al modelo generador para responder: sirve para inspeccionar qué
+fragmentos llegarían al contexto.
+
+## Cómo funciona
+
+```mermaid
+flowchart TD
+    Q[Pregunta en español] --> D[Detección de dominio<br/>FastAPI, Docker o ambos]
+    Q --> T[Traducción al inglés con el LLM]
+    D --> S{Para cada dominio y<br/>cada versión de la pregunta}
+    T --> S
+    S --> E[Búsqueda por embeddings<br/>en ChromaDB]
+    S --> B[Búsqueda BM25]
+    E --> F[Fusión de rankings<br/>con RRF ponderado]
+    B --> F
+    F --> C[Contexto numerado<br/>8 fragmentos, o 5 + 5 con dos dominios]
+    C --> G[Qwen 2.5 3B]
+    G --> R[Respuesta con citas<br/>o abstención]
+```
+
+1. **Detección de dominio.** Patrones de la pregunta, como los nombres de las tecnologías
+   o términos como dockerfile, volumen o compose, deciden si se busca en la documentación
+   de FastAPI, en la de Docker o en ambas.
+2. **Expansión de la consulta.** El modelo traduce la pregunta al inglés, el idioma de la
+   documentación, y se buscan las dos versiones.
+3. **Búsqueda híbrida.** Cada versión se busca por similitud de embeddings
+   (`paraphrase-multilingual-MiniLM-L12-v2`) y por coincidencia de términos con BM25. Los
+   rankings se combinan con Reciprocal Rank Fusion ponderado.
+4. **Generación fundamentada.** El modelo recibe los fragmentos numerados y unas
+   instrucciones que le exigen usar solo esa información, citar cada afirmación, decir
+   qué parte no está documentada, abstenerse cuando ningún fragmento se relaciona con la
+   pregunta y corregir las premisas falsas.
+
+## Configuración
+
+Los parámetros se leen de variables de entorno, con los valores del sistema evaluado por
+defecto. Por ejemplo, en PowerShell: `$env:OLLAMA_MODEL = "qwen2.5:7b"`.
+
+| Variable | Valor por defecto | Descripción |
+|---|---|---|
+| `OLLAMA_MODEL` | `qwen2.5:3b` | Modelo generador de Ollama |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Dirección del servidor de Ollama |
+| `EMBEDDING_MODEL` | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | Modelo de embeddings; cambiarlo exige volver a ejecutar `src.ingest` |
+| `RETRIEVAL_K` | `8` | Fragmentos entregados al modelo cuando la pregunta es de un solo dominio |
+| `INTEGRATED_K_PER_DOMAIN` | `5` | Fragmentos por dominio cuando la pregunta involucra ambos |
+| `QUERY_EXPANSION_ENABLED` | `true` | Busca también la traducción de la pregunta al inglés |
+| `QUERY_EXPANSION_SEARCH_K` | `10` | Candidatos por búsqueda, dominio y versión de la pregunta |
+| `HYBRID_SEARCH_ENABLED` | `true` | Añade la búsqueda BM25 a la búsqueda por embeddings |
+| `BM25_WEIGHT` | `1.5` | Factor que multiplica el peso de la búsqueda BM25 en la fusión |
+| `RRF_CONSTANT` | `60` | Constante de Reciprocal Rank Fusion |
+| `RRF_ORIGINAL_QUERY_WEIGHT` | `1.0` | Peso de la pregunta original en la fusión |
+| `RRF_EXPANDED_QUERY_WEIGHT` | `0.75` | Peso de la pregunta traducida en la fusión |
+
+## Corpus
+
+El corpus reúne 23 páginas oficiales, 13 de Docker y 10 de FastAPI, divididas en 573
+fragmentos de hasta 800 caracteres. Está en [`data/documentos/`](data/documentos/), junto
+con un `manifest.json` que registra la dirección y la fecha de descarga de cada página.
+
+```powershell
+python -m src.download_docs   # vuelve a descargar y limpiar las páginas
+python -m src.ingest          # vuelve a crear el índice
+```
+
+La documentación oficial cambia con frecuencia, por lo que volver a descargarla produce un
+corpus distinto al evaluado, que corresponde a la descarga del 25 de noviembre de 2026.
+
+## Estructura del repositorio
+
+```text
+app.py                     interfaz web (Streamlit)
 src/
-  config.py           parámetros (modelos, colección, recuperación, BM25)
-  download_docs.py    descarga y limpieza del corpus
-  ingest.py           fragmentación e indexación en ChromaDB
-  rag.py              detección de dominio, búsqueda híbrida, RRF, prompts, generación
-  search.py, ask.py   herramientas de terminal
-  evaluate.py         ejecuta el banco sin RAG y con RAG
-  eval_retrieval.py   métricas automáticas de recuperación
-app.py                interfaz Streamlit
-grade.py              herramienta de calificación manual
+  config.py                parámetros del sistema
+  download_docs.py         descarga y limpieza de la documentación
+  ingest.py                fragmentación, embeddings e indexación en ChromaDB
+  rag.py                   detección de dominio, búsqueda híbrida, RRF, instrucciones y generación
+  ask.py                   consultas desde la terminal
+  search.py                inspección de la recuperación
+data/documentos/           corpus en Markdown y manifest.json
+evaluation/                banco de preguntas, scripts de evaluación, rúbrica y resultados
+docs/informe/              informe del proyecto (cuaderno Jupyter)
 ```
 
 ## Evaluación
 
-La evaluación compara las respuestas del modelo sin RAG y con RAG y clasifica si están
-fundamentadas en la documentación o contienen información inventada.
+El sistema se evaluó comparando las respuestas del mismo modelo sin RAG y con RAG sobre un
+banco de 30 preguntas, separadas en un conjunto de desarrollo y uno de prueba. En las 15
+preguntas del conjunto de desarrollo, según la calificación de consenso de tres
+evaluadores:
 
-El banco tiene 30 preguntas en dos conjuntos:
+| Métrica | Sin RAG | Con RAG |
+|---|---:|---:|
+| Respuestas fundamentadas en la documentación | 0 de 15 | 9 de 15 |
+| Respuestas con contenido no respaldado | 15 de 15 | 6 de 15 |
+| Respuestas correctas y completas | 3 de 15 | 8 de 15 |
 
-- **dev (15):** para ajustar el sistema. Todo cambio se mide aquí.
-- **test (15):** se ejecutó **una sola vez** con el sistema congelado (commit `2c30569`).
-  No se debe ajustar nada mirando sus preguntas ni sus resultados.
+El banco de preguntas, la rúbrica, los scripts y la guía para repetir la evaluación están
+en [`evaluation/`](evaluation/). El análisis completo, incluidos los errores del sistema y
+sus limitaciones, está en el
+[informe](docs/informe/solPE2_Jefferson-Rojas_Juan-Tocto_Andre-Valenzuela_Gustavo-Vila.ipynb).
 
-### Calificar
+## Equipo
 
-```powershell
-streamlit run grade.py
-```
-
-1. Escribe tu nombre en la barra lateral y elige el archivo (`dev` o `test`).
-2. Para cada pregunta verás la respuesta esperada con sus elementos esenciales, las dos
-   respuestas y el texto de los fragmentos recuperados. Califica con la rúbrica
-   ([`docs/rubrica_evaluacion.md`](docs/rubrica_evaluacion.md)); el ❔ de cada criterio
-   muestra la definición de cada valor.
-3. Las notas se guardan en `results/calificaciones/<archivo>__<tu_nombre>.csv`.
-4. Dos personas califican por separado; en la pestaña **Resumen** se ve el acuerdo
-   (kappa) y las discrepancias. Tras discutirlas, se registran las notas finales con el
-   nombre **`consenso`**: son las que usa el informe.
-
-Las notas del evaluador `claude` son una calificación preliminar hecha por un LLM, para
-contrastar con las del equipo.
-
-### Ejecutar una nueva evaluación
-
-```powershell
-python -m src.eval_retrieval --split dev          # métricas de recuperación (rápido)
-python -m src.evaluate --split dev                # respuestas sin RAG y con RAG
-```
-
-`evaluate` guarda junto al CSV un `.meta.json` con el commit, el modelo y la configuración.
-Haz commit de tus cambios **antes** de ejecutarlo para que el registro sea exacto.
-Si cambias el sistema, vuelve a ejecutar `dev`; una nueva ejecución de `test` debe
-presentarse como una ejecución nueva, no como un ajuste.
-
-## Reproducibilidad
-
-- El corpus de `data/documentos/` corresponde a la descarga del 2026-11-25. La
-  documentación oficial cambia con frecuencia; `python -m src.download_docs` descargaría
-  una versión distinta y cambiaría los resultados.
-- Tras cambiar el corpus o los parámetros de fragmentación hay que volver a ejecutar
-  `python -m src.ingest`. Califica las respuestas **antes** de reindexar: los
-  identificadores de fragmento de los resultados antiguos dejarían de corresponder.
+Proyecto del Equipo N.º 3 del curso Sistemas Inteligentes, Universidad Nacional Mayor de
+San Marcos, semestre 2026-2, sección 3: Jefferson Rojas, Juan Tocto, Andre Valenzuela y
+Gustavo Vila.

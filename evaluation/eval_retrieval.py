@@ -1,9 +1,9 @@
 """Evalúa solo la recuperación: ¿aparecen los documentos esperados?
 
 Uso:
-    python -m src.eval_retrieval                  # conjunto dev
-    python -m src.eval_retrieval --split test
-    python -m src.eval_retrieval --details        # muestra el ranking de cada pregunta
+    python -m evaluation.eval_retrieval                  # conjunto dev
+    python -m evaluation.eval_retrieval --split test
+    python -m evaluation.eval_retrieval --details        # muestra el ranking de cada pregunta
 
 No llama al LLM para responder (solo para la expansión bilingüe de la
 consulta), así que es rápido y sirve para comparar variantes de la
@@ -21,10 +21,10 @@ import argparse
 import csv
 from pathlib import Path
 
-from .config import ROOT
-from .rag import resolve_domains, retrieve
+from src.config import ROOT
+from src.rag import resolve_domains, retrieve
 
-INPUT_DEFAULT = ROOT / "results" / "preguntas_evaluacion_v2.csv"
+INPUT_DEFAULT = ROOT / "evaluation" / "preguntas_evaluacion_v2.csv"
 
 
 def evaluate(questions: list[dict], details: bool = False) -> dict:

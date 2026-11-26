@@ -180,6 +180,6 @@ sus limitaciones, está en el
 
 ## Equipo
 
-Proyecto del Equipo N.º 3 del curso Sistemas Inteligentes, Universidad Nacional Mayor de
-San Marcos, semestre 2026-2, sección 3: Jefferson Rojas, Juan Tocto, Andre Valenzuela y
-Gustavo Vila.
+Grupo 3 del Proyecto Equipo N.º 2 del curso Sistemas Inteligentes, Universidad Nacional
+Mayor de San Marcos, semestre 2026-2, sección 3: Jefferson Rojas, Juan Tocto, Andre
+Valenzuela y Gustavo Vila.

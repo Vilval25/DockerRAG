@@ -110,9 +110,28 @@ def load_essentials() -> dict[str, list[str]]:
     if not QUESTION_BANK.exists():
         return {}
     return {
-        row["id"]: [e.strip() for e in (row.get("essential_elements") or "").split(" | ") if e.strip()]
+        row["id"]: split_essentials(row.get("essential_elements") or "")
         for row in read_csv(QUESTION_BANK)
     }
+
+
+def split_essentials(text: str) -> list[str]:
+    """Separa por ' | ' sin cortar dentro de paréntesis o corchetes (p. ej. 'str | None')."""
+    parts, current, depth, i = [], "", 0, 0
+    while i < len(text):
+        char = text[i]
+        if char in "([":
+            depth += 1
+        elif char in ")]":
+            depth -= 1
+        if depth == 0 and text.startswith(" | ", i):
+            parts.append(current.strip())
+            current, i = "", i + 3
+            continue
+        current += char
+        i += 1
+    parts.append(current.strip())
+    return [part for part in parts if part]
 
 
 def grades_path(results_file: Path, evaluator: str) -> Path:

@@ -11,10 +11,12 @@ question = st.text_input(
 )
 domain_label = st.selectbox(
     "Documentación que se consultará",
-    ["Ambas (FastAPI + Docker)", "Solo FastAPI", "Solo Docker"],
+    ["Automático (según la pregunta)", "Solo FastAPI", "Solo Docker"],
+    help="En modo automático el sistema detecta si la pregunta es de FastAPI, "
+         "de Docker o de ambas, y busca en la documentación correspondiente.",
 )
 domain = {
-    "Ambas (FastAPI + Docker)": None,
+    "Automático (según la pregunta)": None,
     "Solo FastAPI": "fastapi",
     "Solo Docker": "docker",
 }[domain_label]

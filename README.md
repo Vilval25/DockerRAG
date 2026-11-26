@@ -1,63 +1,116 @@
 # DevDocsRAG — FastAPI + Docker (Grupo 3)
 
-Prototipo RAG textual para consultas sobre documentación técnica oficial de FastAPI y Docker. Python, LangChain, ChromaDB, embeddings multilingües y un LLM local mediante Ollama.
+Sistema RAG (*Retrieval-Augmented Generation*) local para responder en español consultas
+sobre la documentación oficial de **FastAPI** y **Docker**. Proyecto Equipo N.º 2 de
+Sistemas Inteligentes (UNMSM, 2026-2, sección 3).
 
-## Caso de estudio
+- **Modelo generador:** Qwen 2.5:3B mediante [Ollama](https://ollama.com), ejecutado en local.
+- **Recuperación:** búsqueda híbrida (embeddings multilingües en ChromaDB + BM25) fusionada con RRF.
+- **Corpus:** 23 páginas oficiales (13 Docker, 10 FastAPI), 573 fragmentos.
+- **Informe:** [`solPE2_Jefferson-Rojas_Juan-Tocto_Andre-Valenzuela_Gustavo-Vila.ipynb`](solPE2_Jefferson-Rojas_Juan-Tocto_Andre-Valenzuela_Gustavo-Vila.ipynb)
 
-Asistente para estudiantes y desarrolladores que construyen APIs REST con FastAPI y las empaquetan/despliegan con Docker. El sistema admite preguntas de cada dominio y preguntas integradoras que requieren recuperar información de ambos.
+## Instalación (Windows PowerShell)
 
-## Requisitos
-
-- Python 3.11 o 3.12 (recomendado 3.11), pip e Internet para descargar las fuentes y modelos.
-- Ollama instalado y en ejecución, con `qwen2.5:3b` disponible.
-- RAM y espacio suficientes para el LLM, embeddings y ChromaDB.
-
-## Configuración (Windows PowerShell)
+Requisitos: Python 3.11 o 3.12, [Ollama](https://ollama.com/download) y unos 3 GB libres.
 
 ```powershell
-py -3.11 -m venv .venv
+git clone <url-del-repositorio>
+cd DockerRAG
+py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 pip install -r requirements.txt
 ollama pull qwen2.5:3b
+python -m src.ingest      # crea el índice chroma_db/ a partir de data/documentos/
 ```
 
-## Pipeline
+El índice (`chroma_db/`) no está en el repositorio: `src.ingest` lo genera en un par de
+minutos y, como el corpus sí está versionado, el resultado es idéntico en cualquier equipo
+(mismos identificadores de fragmento).
+
+Si ves caracteres extraños en la consola, ejecuta Python en modo UTF-8:
+`$env:PYTHONUTF8 = "1"`.
+
+## Uso
 
 ```powershell
-python -m src.download_docs
-python -m src.ingest
-python -m src.search "¿Cómo funciona Docker Compose?" --domain docker
-python -m src.search "¿Cómo funcionan las dependencias?" --domain fastapi
-python -m src.search "¿Cómo contenerizar una API FastAPI?"
-python -m src.ask "¿Cómo desplegar una API FastAPI con Docker Compose?"
-python -m src.ask --base "¿Cómo desplegar una API FastAPI con Docker Compose?"
-streamlit run app.py
+streamlit run app.py                                         # interfaz web (demo)
+python -m src.ask "¿Cómo publico un puerto con Docker?"       # pregunta con RAG
+python -m src.ask --base "¿Cómo publico un puerto con Docker?" # mismo modelo sin RAG
+python -m src.search "¿Qué hace EXPOSE?"                     # ver qué fragmentos se recuperan
 ```
 
-## Corpus
+## Estructura
 
-El descargador obtiene 12 páginas oficiales y crea `data/documentos/manifest.json`:
+```
+data/documentos/          corpus descargado (Markdown) + manifest.json
+docs/
+  corpus_evaluacion_v2.md diseño del corpus y del banco de preguntas
+  rubrica_evaluacion.md   rúbrica de calificación (definición de cada valor)
+results/
+  preguntas_evaluacion_v2.csv            banco de 30 preguntas (dev/test)
+  evaluacion_{dev,test}_resultados.csv   respuestas sin RAG y con RAG
+  evaluacion_test_resultados.meta.json   con qué versión exacta se generó test
+  calificaciones/                        notas por evaluador
+  evaluacion_v1_5_*, evaluacion_v1_6_*   resultados históricos de la v1
+src/
+  config.py           parámetros (modelos, colección, recuperación, BM25)
+  download_docs.py    descarga y limpieza del corpus
+  ingest.py           fragmentación e indexación en ChromaDB
+  rag.py              detección de dominio, búsqueda híbrida, RRF, prompts, generación
+  search.py, ask.py   herramientas de terminal
+  evaluate.py         ejecuta el banco sin RAG y con RAG
+  eval_retrieval.py   métricas automáticas de recuperación
+app.py                interfaz Streamlit
+grade.py              herramienta de calificación manual
+```
 
-- 6 fuentes Docker: overview, Dockerfile, networking, volumes y Compose.
-- 6 fuentes FastAPI: first steps, path parameters, query parameters, request body, dependencies y despliegue en contenedores.
+## Evaluación
 
-Cada documento conserva `domain`, título, URL y fecha de recopilación. Revisa los Markdown generados y el manifiesto antes de indexar.
+Sigue el lineamiento del docente: comparar respuestas **sin RAG y con RAG** y clasificar
+si están **fundamentadas en la documentación o alucinadas**.
 
-## Indexación
+El banco tiene 30 preguntas en dos conjuntos:
 
-`src.ingest` crea fragmentos de 800 caracteres con solapamiento de 150, genera embeddings con `paraphrase-multilingual-MiniLM-L12-v2` e indexa metadatos en ChromaDB. El campo `domain` permite filtrar la búsqueda por `docker` o `fastapi`; si no se aplica filtro, se buscan ambos dominios.
+- **dev (15):** para ajustar el sistema. Todo cambio se mide aquí.
+- **test (15):** se ejecutó **una sola vez** con el sistema congelado (commit `2c30569`).
+  No se debe ajustar nada mirando sus preguntas ni sus resultados.
 
-**Importante:** al volver a ejecutar `python -m src.ingest`, se reconstruye la base vectorial local. Este paquete usa una colección nueva (`docker_fastapi_docs_v1`) y reemplaza la carpeta `chroma_db` que exista en este proyecto. Conserva una copia si necesitas preservar el índice anterior.
+### Calificar
 
-## Evaluación propuesta
+```powershell
+streamlit run grade.py
+```
 
-Usar 15 preguntas: 5 sobre FastAPI, 5 sobre Docker y 5 integradoras. Ejecutar cada pregunta con el mismo modelo y parámetros, primero sin RAG y luego con RAG. Evaluar exactitud, fundamentación, relevancia de recuperación y alucinaciones mediante una rúbrica manual. No comparar FastAPI y Docker como tecnologías competidoras: son componentes complementarios del caso de estudio.
+1. Escribe tu nombre en la barra lateral y elige el archivo (`dev` o `test`).
+2. Para cada pregunta verás la respuesta esperada con sus elementos esenciales, las dos
+   respuestas y el texto de los fragmentos recuperados. Califica con la rúbrica
+   ([`docs/rubrica_evaluacion.md`](docs/rubrica_evaluacion.md)); el ❔ de cada criterio
+   muestra la definición de cada valor.
+3. Las notas se guardan en `results/calificaciones/<archivo>__<tu_nombre>.csv`.
+4. Dos personas califican por separado; en la pestaña **Resumen** se ve el acuerdo
+   (kappa) y las discrepancias. Tras discutirlas, se registran las notas finales con el
+   nombre **`consenso`**: son las que usa el informe.
 
-## Reproducibilidad y limitaciones
+Las notas del evaluador `claude` son una calificación preliminar hecha por un LLM, para
+contrastar con las del equipo.
 
-- El corpus se descarga de sitios oficiales en evolución; conservar los Markdown y `manifest.json` para fijar el conjunto exacto usado.
-- Revisar el contenido extraído, ya que la estructura HTML puede cambiar.
-- El top-k no garantiza que todos los fragmentos sean relevantes.
-- La plantilla CSV no contiene resultados experimentales.
-- La primera ejecución requiere Internet para descargar páginas y el modelo de embeddings; Ollama requiere tener el modelo local disponible.
+### Ejecutar una nueva evaluación
+
+```powershell
+python -m src.eval_retrieval --split dev          # métricas de recuperación (rápido)
+python -m src.evaluate --split dev                # respuestas sin RAG y con RAG
+```
+
+`evaluate` guarda junto al CSV un `.meta.json` con el commit, el modelo y la configuración.
+Haz commit de tus cambios **antes** de ejecutarlo para que el registro sea exacto.
+Si cambias el sistema, vuelve a ejecutar `dev`; una nueva ejecución de `test` debe
+presentarse como una ejecución nueva, no como un ajuste.
+
+## Reproducibilidad
+
+- El corpus de `data/documentos/` corresponde a la descarga del 2026-11-25. La
+  documentación oficial cambia con frecuencia; `python -m src.download_docs` descargaría
+  una versión distinta y cambiaría los resultados.
+- Tras cambiar el corpus o los parámetros de fragmentación hay que volver a ejecutar
+  `python -m src.ingest`. Califica las respuestas **antes** de reindexar: los
+  identificadores de fragmento de los resultados antiguos dejarían de corresponder.

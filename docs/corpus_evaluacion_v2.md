@@ -82,34 +82,17 @@ tiene al menos un documento.
 | 13_docker_port_publishing (escrito a mano) | docker_port_publishing (descarga real) | El archivo v1 no era la página oficial. |
 | — | 10 páginas nuevas (4 FastAPI, 6 Docker) | Respaldan las preguntas nuevas (validaciones, response_model, errores, CLI, settings, caché, bridge, red, arranque, variables y volúmenes en Compose). |
 
-## Cambios necesarios en el código
+## Estado
 
-1. **`src/download_docs.py`**
-   - Sustituir `SOURCES` por la lista anterior y usar los nombres de archivo sin número.
-   - Eliminar el texto de relleno antes de convertir a Markdown:
-     - el aviso "AI coding agents … `uvx library-skills`" de FastAPI;
-     - los enlaces `¶` / "Permanent link" de los títulos;
-     - "Table of contents" y las anclas `[Título](#ancla)` de Docker.
-   - Guardar en el manifiesto `response.url` (ya lo hace) y comprobar que no hubo
-     redirección a otra página. Docker está reorganizando su documentación.
-2. **`src/add_port_publishing.py`**: eliminarlo.
-3. **`src/rag.py`**: quitar las plantillas deterministas (`_build_path_validation_answer`,
-   `_build_integrated_evidence_answer`) y las consultas escritas para preguntas concretas
-   de la v1. Si se mantiene alguna regla, ajustarla solo con preguntas `dev`.
-4. **`src/evaluate.py`**:
-   - Añadir `--split dev|test|all`.
-   - **No forzar el dominio a partir de la columna `domain` del CSV**: la v1 le pasaba al
-     sistema la respuesta correcta sobre el dominio. Evaluar con detección automática
-     (`domain=None`) y registrar los dominios detectados.
-5. **Volver a indexar** con `python -m src.ingest`. El ID de colección debería cambiar (por ejemplo
-   `docker_fastapi_docs_v2`).
+Implementado: `src/download_docs.py` descarga y limpia estas fuentes, `src/rag.py` ya no
+contiene respuestas deterministas ni consultas escritas para preguntas concretas, y
+`src/evaluate.py` detecta el dominio automáticamente y separa los conjuntos `dev` y `test`.
+Instrucciones de uso en el `README.md`.
 
 ## Reproducibilidad
 
 - La documentación oficial cambia: en solo 10 días, dos páginas de Docker del corpus v1
-  desaparecieron o cambiaron. **Los Markdown descargados y `manifest.json` deben
-  guardarse en git** para fijar el corpus exacto que se evaluó.
-- La línea base v1 se puede comparar con `main` (commit `192692e`). Sus resultados usan el
-  banco v1, así que la comparación v1 frente a v2 es entre sistemas *y* bancos distintos.
-  Si se quiere medir el efecto del nuevo corpus aislado, se puede ejecutar también el
-  banco v1 contra el sistema v2.
+  desaparecieron o cambiaron. Los Markdown descargados y `manifest.json` se guardan en
+  git para fijar el corpus exacto que se evaluó.
+- La versión v1 (corpus, código y resultados) se conserva en el historial de git
+  (commit `192692e`).

@@ -4,7 +4,7 @@ Uso:
     python -m src.evaluate                      # preguntas dev (por defecto)
     python -m src.evaluate --split test         # preguntas de prueba, solo al final
     python -m src.evaluate --split dev --limit 3 --output results/piloto.csv
-    python -m src.evaluate --input results/preguntas_evaluacion.csv --split all
+    python -m src.evaluate --split all             # las 30 preguntas
 
 Las mejoras del sistema se ajustan solo con el conjunto dev. El conjunto test
 se ejecuta al final para comprobar si la mejora se mantiene con preguntas

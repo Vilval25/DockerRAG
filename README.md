@@ -51,7 +51,6 @@ results/
   evaluacion_{dev,test}_resultados.csv   respuestas sin RAG y con RAG
   evaluacion_test_resultados.meta.json   con qué versión exacta se generó test
   calificaciones/                        notas por evaluador
-  evaluacion_v1_5_*, evaluacion_v1_6_*   resultados históricos de la v1
 src/
   config.py           parámetros (modelos, colección, recuperación, BM25)
   download_docs.py    descarga y limpieza del corpus

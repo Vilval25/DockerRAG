@@ -3,10 +3,11 @@
 Uso:
     streamlit run grade.py
 
-Cada evaluador escribe su nombre y califica las preguntas de un CSV de
-resultados (results/evaluacion_*_resultados.csv). Las notas se guardan en
-results/calificaciones/<resultados>__<evaluador>.csv, sin modificar el CSV
-de resultados.
+La rúbrica está definida en docs/rubrica_evaluacion.md. Cada evaluador escribe
+su nombre y califica las preguntas de un CSV de resultados
+(results/evaluacion_*_resultados.csv). Las notas se guardan en
+results/calificaciones/<resultados>__<evaluador>.csv, sin modificar el CSV de
+resultados.
 
 Flujo recomendado:
 1. Dos integrantes califican por separado.
@@ -28,56 +29,90 @@ from src.config import COLLECTION, DB_DIR, ROOT
 
 RESULTS_DIR = ROOT / "results"
 GRADES_DIR = RESULTS_DIR / "calificaciones"
+QUESTION_BANK = RESULTS_DIR / "preguntas_evaluacion_v2.csv"
+RUBRIC_DOC = ROOT / "docs" / "rubrica_evaluacion.md"
 CONSENSUS = "consenso"
 
+GROUNDING_HELP = (
+    "Clasifica cada afirmación técnica: R = respaldada por el corpus; "
+    "F = falsa o inventada (contradice el corpus o menciona algo inexistente); "
+    "N = no está en el corpus pero es cierta.\n\n"
+    "**Fundamentada**: todo lo central es R y no hay ninguna F (una abstención "
+    "también es Fundamentada).\n\n"
+    "**Parcial**: nada central es F, pero hay alguna F secundaria o algo central es N.\n\n"
+    "**Alucinada**: alguna afirmación central es F (incluye inventar un dato, "
+    "aceptar una premisa falsa o dar una implementación inventada)."
+)
+ACCURACY_HELP = (
+    "**2**: contiene todos los elementos esenciales y ninguno es erróneo.\n\n"
+    "**1**: contiene al menos uno, pero omite otro o tiene un error en alguno.\n\n"
+    "**0**: ningún elemento esencial correcto (responde otra cosa, repite la "
+    "pregunta, se abstiene teniendo respuesta en el corpus o lo central es erróneo).\n\n"
+    "Las categorías sin_evidencia, fuera_de_corpus y premisa_falsa tienen reglas propias "
+    "(ver el recuadro de la categoría)."
+)
+RETRIEVAL_HELP = (
+    "Se juzga por el contenido de los fragmentos, no por el nombre del archivo.\n\n"
+    "**Sí**: entre los fragmentos están todos los elementos esenciales.\n\n"
+    "**Parcial**: están algunos, falta al menos uno.\n\n"
+    "**No**: ningún fragmento contiene elementos esenciales.\n\n"
+    "**N/A**: preguntas sin_evidencia y fuera_de_corpus."
+)
+CITATIONS_HELP = (
+    "**Sí**: hay citas y cada [n] apunta a un fragmento que contiene lo afirmado.\n\n"
+    "**Parcial**: al menos una cita correcta, pero otra no respalda lo afirmado o una "
+    "afirmación central queda sin cita.\n\n"
+    "**No**: respuesta con contenido sin citas, o ninguna cita respalda lo afirmado.\n\n"
+    "**N/A**: la respuesta es una abstención (anota en notas si lleva una cita sobrante)."
+)
+
+# campo: (etiqueta, opciones, ayuda)
 RUBRIC = {
-    "retrieval_relevant": ("Recuperación relevante", ["Sí", "Parcial", "No", "N/A"]),
-    "accuracy_base": ("Exactitud base", ["2", "1", "0"]),
-    "accuracy_rag": ("Exactitud RAG", ["2", "1", "0"]),
-    "grounded_base": ("Fundamentación base", ["2", "1", "0"]),
-    "grounded_rag": ("Fundamentación RAG", ["2", "1", "0"]),
-    "hallucination_base": ("Alucinación base", ["Sí", "No"]),
-    "hallucination_rag": ("Alucinación RAG", ["Sí", "No"]),
+    "grounding_base": ("Fundamentación base", ["Fundamentada", "Parcial", "Alucinada"], GROUNDING_HELP),
+    "accuracy_base": ("Exactitud base", ["2", "1", "0"], ACCURACY_HELP),
+    "grounding_rag": ("Fundamentación RAG", ["Fundamentada", "Parcial", "Alucinada"], GROUNDING_HELP),
+    "accuracy_rag": ("Exactitud RAG", ["2", "1", "0"], ACCURACY_HELP),
+    "retrieval_relevant": ("Recuperación relevante", ["Sí", "Parcial", "No", "N/A"], RETRIEVAL_HELP),
+    "citations_rag": ("Citas correctas", ["Sí", "Parcial", "No", "N/A"], CITATIONS_HELP),
 }
 GRADE_FIELDS = ["id", *RUBRIC, "notes", "graded_at"]
 
 CATEGORY_GUIDE = {
-    "directa": "Correcta (2) si contiene lo esencial de la respuesta esperada.",
-    "aplicada": "Correcta (2) si aplica correctamente lo documentado al caso.",
-    "integrada": "Correcta (2) si cubre las dos partes (FastAPI y Docker). "
-                 "Recuperación 'Parcial' si solo llegó uno de los documentos esperados.",
-    "sin_evidencia": "Correcta (2) si se ABSTIENE. Si inventa una versión, IP o puerto: "
-                     "exactitud 0 y alucinación Sí. Recuperación: N/A.",
-    "fuera_de_corpus": "Correcta (2) si se ABSTIENE. Si genera código o comandos no "
-                       "documentados: exactitud 0 y alucinación Sí. Recuperación: N/A.",
-    "premisa_falsa": "Correcta (2) si CORRIGE la premisa. Abstenerse = 1. Seguirle la "
-                     "corriente = 0 y alucinación Sí.",
+    "directa": "Exactitud según los elementos esenciales (2 = todos sin errores).",
+    "aplicada": "Exactitud según los elementos esenciales (2 = todos sin errores).",
+    "integrada": "Exactitud según los elementos esenciales de ambas partes. "
+                 "Recuperación 'Parcial' si falta la información de una de las dos tecnologías.",
+    "sin_evidencia": "Exactitud: 2 = indica que no puede saberse sin inventarlo (puede sugerir cómo "
+                     "averiguarlo) · 1 = se abstiene pero añade un dato concreto como posible · "
+                     "0 = da el dato como si lo supiera. Recuperación y citas: N/A.",
+    "fuera_de_corpus": "Exactitud: 2 = indica que la documentación no cubre el tema y no genera contenido "
+                       "técnico · 1 = lo indica pero además da pasos o código · 0 = responde sin advertirlo. "
+                       "Recuperación y citas: N/A.",
+    "premisa_falsa": "Exactitud: 2 = dice explícitamente que la premisa es falsa y explica lo correcto · "
+                     "1 = no la acepta ni la corrige, o da lo correcto sin señalar que es falsa · "
+                     "0 = acepta la premisa. Aceptar la premisa también implica fundamentación 'Alucinada'.",
 }
-
-RUBRIC_HELP = """
-**Recuperación relevante**: ¿los fragmentos recuperados contienen lo necesario para responder?
-Sí / Parcial (solo una parte) / No / N/A (sin_evidencia, fuera_de_corpus).
-
-**Exactitud** (frente a la respuesta esperada): 2 = correcta y completa ·
-1 = parcial o con imprecisiones · 0 = incorrecta.
-
-**Fundamentación**: 2 = todo lo que afirma está respaldado por la documentación ·
-1 = parcialmente · 0 = sin respaldo. En RAG, comprueba que cada cita [n] diga lo
-que se afirma. En la base, contrasta con los documentos del corpus.
-
-**Alucinación**: Sí si contiene *alguna* afirmación inventada o no respaldada.
-"""
 
 
 # ---------------------------------------------------------------- datos
 
 def list_result_files() -> list[Path]:
-    return sorted(RESULTS_DIR.glob("evaluacion_*.csv"))
+    return sorted(RESULTS_DIR.glob("evaluacion_*_resultados.csv"))
 
 
 def read_csv(path: Path) -> list[dict]:
     with path.open("r", encoding="utf-8-sig", newline="") as file:
         return list(csv.DictReader(file))
+
+
+@st.cache_data
+def load_essentials() -> dict[str, list[str]]:
+    if not QUESTION_BANK.exists():
+        return {}
+    return {
+        row["id"]: [e.strip() for e in (row.get("essential_elements") or "").split(" | ") if e.strip()]
+        for row in read_csv(QUESTION_BANK)
+    }
 
 
 def grades_path(results_file: Path, evaluator: str) -> Path:
@@ -92,12 +127,12 @@ def load_grades(path: Path) -> dict[str, dict]:
 
 def save_grades(path: Path, grades: dict[str, dict], order: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    ids = [qid for qid in order if qid in grades]
     with path.open("w", encoding="utf-8-sig", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=GRADE_FIELDS, extrasaction="ignore")
         writer.writeheader()
-        for qid in ids:
-            writer.writerow(grades[qid])
+        for qid in order:
+            if qid in grades:
+                writer.writerow(grades[qid])
 
 
 def normalize_evaluator(name: str) -> str:
@@ -115,12 +150,8 @@ def parse_sources(value: str) -> list[dict]:
         fields = [f.strip() for f in match.group(2).split(" | ")]
         fields += [""] * (5 - len(fields))
         sources.append({
-            "n": int(match.group(1)),
-            "domain": fields[0],
-            "title": fields[1],
-            "filename": fields[2],
-            "chunk_id": fields[3],
-            "url": fields[4],
+            "n": int(match.group(1)), "domain": fields[0], "title": fields[1],
+            "filename": fields[2], "chunk_id": fields[3], "url": fields[4],
         })
     return sources
 
@@ -145,55 +176,64 @@ def get_chunks(chunk_ids: tuple[str, ...]) -> dict[str, dict]:
     result = collection.get(ids=list(chunk_ids), include=["documents", "metadatas"])
     return {
         chunk_id: {"text": text, "metadata": metadata or {}}
-        for chunk_id, text, metadata in zip(
-            result["ids"], result["documents"], result["metadatas"]
-        )
+        for chunk_id, text, metadata in zip(result["ids"], result["documents"], result["metadatas"])
     }
 
 
 # ---------------------------------------------------------------- métricas
 
+def pct(values: list[str], targets: set[str]) -> str:
+    if not values:
+        return "-"
+    return f"{round(100 * sum(v in targets for v in values) / len(values), 1)} % (n={len(values)})"
+
+
+def mean_score(values: list[str]) -> str:
+    nums = [int(v) for v in values if v in {"0", "1", "2"}]
+    return str(round(sum(nums) / len(nums), 2)) if nums else "-"
+
+
 def metrics_table(rows: list[dict], grades: dict[str, dict]) -> pd.DataFrame:
-    graded = [(row, grades[row["id"]]) for row in rows if row["id"] in grades]
+    graded = [grades[r["id"]] for r in rows if r["id"] in grades]
 
-    def rate(field: str, value: str, exclude: str | None = None):
-        values = [g[field] for _, g in graded if g.get(field) and g[field] != exclude]
-        if not values:
-            return None
-        return round(100 * sum(v == value for v in values) / len(values), 1), len(values)
+    def col(field, exclude_na=False):
+        return [g.get(field, "") for g in graded if g.get(field) and not (exclude_na and g[field] == "N/A")]
 
-    def mean(field: str):
-        values = [int(g[field]) for _, g in graded if g.get(field) in {"0", "1", "2"}]
-        return round(sum(values) / len(values), 2) if values else None
-
-    lines = []
-    for label, field_base, field_rag, value in [
-        ("Exactitud: % correctas (2)", "accuracy_base", "accuracy_rag", "2"),
-        ("Fundamentación: % completas (2)", "grounded_base", "grounded_rag", "2"),
-        ("Alucinación: % con alucinación", "hallucination_base", "hallucination_rag", "Sí"),
-    ]:
-        base, rag = rate(field_base, value), rate(field_rag, value)
-        lines.append({
-            "Métrica": label,
-            "Base": f"{base[0]} % (n={base[1]})" if base else "-",
-            "RAG": f"{rag[0]} % (n={rag[1]})" if rag else "-",
-        })
-    for label, field_base, field_rag in [
-        ("Exactitud media (0-2)", "accuracy_base", "accuracy_rag"),
-        ("Fundamentación media (0-2)", "grounded_base", "grounded_rag"),
-    ]:
-        lines.append({
-            "Métrica": label,
-            "Base": str(mean(field_base)) if mean(field_base) is not None else "-",
-            "RAG": str(mean(field_rag)) if mean(field_rag) is not None else "-",
-        })
-    retrieval = rate("retrieval_relevant", "Sí", exclude="N/A")
-    lines.append({
-        "Métrica": "Recuperación relevante: % Sí (sin N/A)",
-        "Base": "",
-        "RAG": f"{retrieval[0]} % (n={retrieval[1]})" if retrieval else "-",
-    })
+    lines = [
+        {"Métrica": "Fundamentada (%)", "Base": pct(col("grounding_base"), {"Fundamentada"}),
+         "RAG": pct(col("grounding_rag"), {"Fundamentada"})},
+        {"Métrica": "Alucinación estricta: Alucinada (%)", "Base": pct(col("grounding_base"), {"Alucinada"}),
+         "RAG": pct(col("grounding_rag"), {"Alucinada"})},
+        {"Métrica": "Alucinación amplia: Alucinada + Parcial (%)",
+         "Base": pct(col("grounding_base"), {"Alucinada", "Parcial"}),
+         "RAG": pct(col("grounding_rag"), {"Alucinada", "Parcial"})},
+        {"Métrica": "Exactitud: correctas (2) (%)", "Base": pct(col("accuracy_base"), {"2"}),
+         "RAG": pct(col("accuracy_rag"), {"2"})},
+        {"Métrica": "Exactitud media (0-2)", "Base": mean_score(col("accuracy_base")),
+         "RAG": mean_score(col("accuracy_rag"))},
+        {"Métrica": "Recuperación relevante: Sí (%, sin N/A)", "Base": "",
+         "RAG": pct(col("retrieval_relevant", exclude_na=True), {"Sí"})},
+        {"Métrica": "Citas correctas: Sí (%, sin N/A)", "Base": "",
+         "RAG": pct(col("citations_rag", exclude_na=True), {"Sí"})},
+    ]
     return pd.DataFrame(lines)
+
+
+def failure_table(rows: list[dict], grades: dict[str, dict]) -> pd.DataFrame:
+    """Clasifica las respuestas RAG con exactitud 0-1 según la recuperación."""
+    counts = {"Fallo del modelo (recuperación Sí)": [], "Fallo de búsqueda (recuperación Parcial/No)": []}
+    for row in rows:
+        grade = grades.get(row["id"])
+        if not grade or grade.get("accuracy_rag") not in {"0", "1"}:
+            continue
+        if grade.get("retrieval_relevant") == "Sí":
+            counts["Fallo del modelo (recuperación Sí)"].append(row["id"])
+        elif grade.get("retrieval_relevant") in {"Parcial", "No"}:
+            counts["Fallo de búsqueda (recuperación Parcial/No)"].append(row["id"])
+    return pd.DataFrame([
+        {"Tipo de fallo (exactitud RAG 0-1)": k, "n": len(v), "Preguntas": ", ".join(v)}
+        for k, v in counts.items()
+    ])
 
 
 def cohen_kappa(a: list[str], b: list[str]) -> float | None:
@@ -215,27 +255,31 @@ st.title("📝 Calificación de respuestas")
 
 result_files = list_result_files()
 if not result_files:
-    st.error("No hay archivos results/evaluacion_*.csv. Ejecuta primero: python -m src.evaluate")
+    st.error("No hay archivos results/evaluacion_*_resultados.csv. Ejecuta primero: python -m src.evaluate")
     st.stop()
 
 with st.sidebar:
     default_file = RESULTS_DIR / "evaluacion_dev_resultados.csv"
     results_file = st.selectbox(
-        "Resultados a calificar",
-        result_files,
+        "Resultados a calificar", result_files,
         index=result_files.index(default_file) if default_file in result_files else 0,
         format_func=lambda p: p.name,
     )
     evaluator = normalize_evaluator(st.text_input("Tu nombre (evaluador)", key="evaluator"))
     if evaluator:
         st.caption(f"Notas en `results/calificaciones/{grades_path(results_file, evaluator).name}`")
-    with st.expander("Rúbrica"):
-        st.markdown(RUBRIC_HELP)
+    with st.expander("Rúbrica completa"):
+        if RUBRIC_DOC.exists():
+            st.markdown(RUBRIC_DOC.read_text(encoding="utf-8"))
+        else:
+            st.warning("No se encontró docs/rubrica_evaluacion.md")
 
 rows = read_csv(results_file)
 order = [row["id"] for row in rows]
+essentials = load_essentials()
 
 tab_grade, tab_summary = st.tabs(["Calificar", "Resumen"])
+
 
 def render_grading():
     if not evaluator:
@@ -244,11 +288,8 @@ def render_grading():
 
     path = grades_path(results_file, evaluator)
     grades = load_grades(path)
-
-    st.progress(
-        len([qid for qid in order if qid in grades]) / len(order),
-        text=f"{len([q for q in order if q in grades])}/{len(order)} preguntas calificadas por {evaluator}",
-    )
+    done = len([q for q in order if q in grades])
+    st.progress(done / len(order), text=f"{done}/{len(order)} preguntas calificadas por {evaluator}")
 
     if "idx" not in st.session_state or st.session_state.get("idx_file") != results_file.name:
         st.session_state.idx = 0
@@ -273,13 +314,12 @@ def render_grading():
     category = row.get("category", "")
 
     st.subheader(f"{qid} — {row['question']}")
-    meta = [
+    st.markdown(" · ".join([
         f"**Categoría:** {category}",
         f"**Conjunto:** {row.get('split') or '-'}",
         f"**Dominio esperado:** {row.get('domain') or '-'}",
         f"**Detectado:** {row.get('detected_domains') or '-'}",
-    ]
-    st.markdown(" · ".join(meta))
+    ]))
     if category in CATEGORY_GUIDE:
         st.info(CATEGORY_GUIDE[category])
     if row.get("execution_error"):
@@ -288,6 +328,15 @@ def render_grading():
     with st.container(border=True):
         st.markdown("**Respuesta esperada**")
         st.write(row.get("expected_answer") or "-")
+        items = essentials.get(qid, [])
+        if items:
+            st.markdown("**Elementos esenciales** (márcalos mientras lees; no se guardan)")
+            check_base, check_rag = st.columns(2)
+            check_base.caption("Presentes en la respuesta base")
+            check_rag.caption("Presentes en la respuesta RAG")
+            for i, item in enumerate(items, start=1):
+                check_base.checkbox(f"{i}. {item}", key=f"eb_{results_file.name}_{qid}_{i}")
+                check_rag.checkbox(f"{i}. {item}", key=f"er_{results_file.name}_{qid}_{i}")
         st.caption(f"Fuentes esperadas: {row.get('expected_sources') or 'ninguna'}")
 
     col_base, col_rag = st.columns(2)
@@ -300,7 +349,6 @@ def render_grading():
             st.markdown("#### Con RAG")
             st.markdown(row.get("answer_rag") or "_(vacía)_")
 
-    # Fragmentos recuperados con su texto completo.
     sources = parse_sources(row.get("retrieved_sources", ""))
     cited = {int(n) for n in re.findall(r"\[(\d+)\]", row.get("answer_rag") or "")}
     expected = {s for s in (row.get("expected_sources") or "").split(";") if s}
@@ -316,8 +364,8 @@ def render_grading():
 
     for source in sources:
         marks = ("📌 " if source["n"] in cited else "") + ("🎯 " if source["filename"] in expected else "")
-        title = f"{marks}[{source['n']}] {source['filename']} · {source['chunk_id']}"
-        with st.expander(title, expanded=source["n"] in cited):
+        with st.expander(f"{marks}[{source['n']}] {source['filename']} · {source['chunk_id']}",
+                         expanded=source["n"] in cited):
             chunk = chunks.get(source["chunk_id"])
             if chunk is None:
                 st.warning("Fragmento no encontrado en el índice actual.")
@@ -332,28 +380,38 @@ def render_grading():
                 st.markdown(chunk["text"])
             st.caption(source["url"])
 
-    # Formulario de calificación.
     st.markdown("#### Calificación")
+    st.caption("Pasa el cursor sobre el ❔ de cada criterio para ver la definición de cada valor.")
     current = grades.get(qid, {})
+
+    def radio(field):
+        label, options, help_text = RUBRIC[field]
+        return st.radio(
+            label, options, horizontal=True, help=help_text,
+            index=options.index(current[field]) if current.get(field) in options else None,
+        )
+
     with st.form(key=f"form_{results_file.name}_{evaluator}_{qid}"):
         values = {}
-        retrieval_label, retrieval_options = RUBRIC["retrieval_relevant"]
-        values["retrieval_relevant"] = st.radio(
-            retrieval_label, retrieval_options, horizontal=True,
-            index=retrieval_options.index(current["retrieval_relevant"])
-            if current.get("retrieval_relevant") in retrieval_options else None,
-        )
         col_b, col_r = st.columns(2)
-        for column, suffix, heading in [(col_b, "base", "Base"), (col_r, "rag", "RAG")]:
-            with column:
-                st.markdown(f"**{heading}**")
-                for field in (f"accuracy_{suffix}", f"grounded_{suffix}", f"hallucination_{suffix}"):
-                    label, options = RUBRIC[field]
-                    values[field] = st.radio(
-                        label, options, horizontal=True,
-                        index=options.index(current[field]) if current.get(field) in options else None,
-                    )
-        values["notes"] = st.text_area("Notas (justifica sobre todo las notas 0 y 1)", value=current.get("notes", ""))
+        with col_b:
+            st.markdown("**Base** (comparación)")
+            values["grounding_base"] = radio("grounding_base")
+            values["accuracy_base"] = radio("accuracy_base")
+        with col_r:
+            st.markdown("**RAG** (comparación)")
+            values["grounding_rag"] = radio("grounding_rag")
+            values["accuracy_rag"] = radio("accuracy_rag")
+        st.markdown("**RAG** (diagnóstico)")
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            values["retrieval_relevant"] = radio("retrieval_relevant")
+        with col_d2:
+            values["citations_rag"] = radio("citations_rag")
+        values["notes"] = st.text_area(
+            "Notas (justifica todo valor distinto de Fundamentada / 2 / Sí)",
+            value=current.get("notes", ""),
+        )
         submitted = st.form_submit_button("Guardar calificación", type="primary")
 
     if submitted:
@@ -370,13 +428,15 @@ def render_grading():
                 st.session_state.idx += 1
             st.rerun()
 
+
 def render_summary():
     graders = {
         p.stem.split("__", 1)[1]: load_grades(p)
         for p in sorted(GRADES_DIR.glob(f"{results_file.stem}__*.csv"))
     }
+    graders = {name: g for name, g in graders.items() if any("grounding_rag" in r for r in g.values())}
     if not graders:
-        st.info("Todavía no hay calificaciones para este archivo de resultados.")
+        st.info("Todavía no hay calificaciones (con la rúbrica actual) para este archivo de resultados.")
         return
 
     st.markdown("#### Métricas por evaluador")
@@ -386,18 +446,23 @@ def render_summary():
     )
     for name, grades in graders.items():
         done = len([q for q in order if q in grades])
-        with st.expander(f"{name} — {done}/{len(order)} calificadas", expanded=name == CONSENSUS or len(graders) == 1):
+        with st.expander(f"{name} — {done}/{len(order)} calificadas",
+                         expanded=name == CONSENSUS or len(graders) == 1):
             st.dataframe(metrics_table(rows, grades), hide_index=True, width="stretch")
+            st.dataframe(failure_table(rows, grades), hide_index=True, width="stretch")
             categories = sorted({r.get("category", "") for r in rows if r["id"] in grades})
             if len(categories) > 1:
-                st.markdown("Exactitud RAG media por categoría")
                 by_cat = []
                 for cat in categories:
-                    vals = [int(grades[r["id"]]["accuracy_rag"]) for r in rows
-                            if r.get("category") == cat and r["id"] in grades
-                            and grades[r["id"]].get("accuracy_rag") in {"0", "1", "2"}]
-                    by_cat.append({"Categoría": cat, "n": len(vals),
-                                   "Exactitud RAG media": round(sum(vals) / len(vals), 2) if vals else None})
+                    subset = [r for r in rows if r.get("category") == cat]
+                    sub = {r["id"]: grades[r["id"]] for r in subset if r["id"] in grades}
+                    by_cat.append({
+                        "Categoría": cat, "n": len(sub),
+                        "Exactitud media base": mean_score([g["accuracy_base"] for g in sub.values()]),
+                        "Exactitud media RAG": mean_score([g["accuracy_rag"] for g in sub.values()]),
+                        "Alucinada base": pct([g["grounding_base"] for g in sub.values()], {"Alucinada"}),
+                        "Alucinada RAG": pct([g["grounding_rag"] for g in sub.values()], {"Alucinada"}),
+                    })
                 st.dataframe(pd.DataFrame(by_cat), hide_index=True, width="stretch")
 
     independent = [name for name in graders if name != CONSENSUS]
@@ -408,20 +473,20 @@ def render_summary():
             a, b = graders[pair[0]], graders[pair[1]]
             common = [q for q in order if q in a and q in b]
             st.caption(f"Preguntas calificadas por ambos: {len(common)}")
-            agreement = []
-            disagreements = []
-            for field, (label, _) in RUBRIC.items():
-                va = [a[q][field] for q in common]
-                vb = [b[q][field] for q in common]
+            agreement, disagreements = [], []
+            for field, (label, _, _) in RUBRIC.items():
+                va = [a[q].get(field, "") for q in common]
+                vb = [b[q].get(field, "") for q in common]
                 same = sum(x == y for x, y in zip(va, vb))
                 agreement.append({
                     "Criterio": label,
                     "Acuerdo": f"{round(100 * same / len(common), 1)} %" if common else "-",
                     "Kappa de Cohen": cohen_kappa(va, vb),
                 })
-                for q, x, y in zip(common, va, vb):
-                    if x != y:
-                        disagreements.append({"Pregunta": q, "Criterio": label, pair[0]: x, pair[1]: y})
+                disagreements += [
+                    {"Pregunta": q, "Criterio": label, pair[0]: x, pair[1]: y}
+                    for q, x, y in zip(common, va, vb) if x != y
+                ]
             st.dataframe(pd.DataFrame(agreement), hide_index=True, width="stretch")
             st.caption("Kappa: < 0,4 acuerdo débil · 0,4–0,6 moderado · 0,6–0,8 bueno · > 0,8 muy bueno.")
             if disagreements:

@@ -38,22 +38,22 @@ SPLITS = ("dev", "test", "all")
 
 QUESTION_FIELDS = [
     "id", "split", "domain", "category", "question",
-    "expected_answer", "expected_sources",
+    "expected_answer", "essential_elements", "expected_sources",
+]
+
+# Rúbrica definida en docs/rubrica_evaluacion.md. Las columnas quedan vacías:
+# se califican con grade.py, que guarda las notas en results/calificaciones/.
+RUBRIC_FIELDS = [
+    "grounding_base", "accuracy_base",
+    "grounding_rag", "accuracy_rag",
+    "retrieval_relevant", "citations_rag", "notes",
 ]
 
 OUTPUT_FIELDS = QUESTION_FIELDS + [
     "detected_domains", "answer_base", "answer_rag",
     "retrieved_sources", "retrieved_domains",
-    "retrieval_relevant", "accuracy_base", "accuracy_rag",
-    "grounded_base", "grounded_rag",
-    "hallucination_base", "hallucination_rag", "notes",
+    *RUBRIC_FIELDS,
     "execution_error",
-]
-
-RUBRIC_FIELDS = [
-    "retrieval_relevant", "accuracy_base", "accuracy_rag",
-    "grounded_base", "grounded_rag",
-    "hallucination_base", "hallucination_rag", "notes",
 ]
 
 
